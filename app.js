@@ -14,6 +14,7 @@ const API_BASE = 'https://v6.bvg.transport.rest';
 const REFRESH_INTERVAL_MS = 30000; // 30 seconds
 const CACHE_DURATION_MINUTES = 60; // Always fetch 60 minutes of departures
 const SEARCH_DEBOUNCE_MS = 350;
+const DEPARTURE_GRACE_SECONDS = 30; // Keep just-departed rows briefly while boarding
 
 // U-Bahn line color mapping (Berlin official colors)
 const U_BAHN_COLORS = {
@@ -60,15 +61,25 @@ const state = {
 // FORMATTING UTILITIES
 // ============================================================================
 
+// API-supplied strings are interpolated into innerHTML below, so escape them
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+}[char]));
+
 const fmtTime = (iso) => {
-  try {
-    return new Date(iso).toLocaleTimeString(undefined, { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  } catch {
-    return '—';
-  }
+  if (!iso) return '—';
+  // new Date('garbage') doesn't throw, it yields an Invalid Date, so validate
+  // the timestamp instead of relying on try/catch
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 const computeDelaySecs = (when, plannedWhen) => {
@@ -206,7 +217,7 @@ const renderSearchResults = (stops) => {
     const li = document.createElement('li');
     li.innerHTML = `
       <a class="justify-between">
-        <span><span class="font-medium">${stop.name}</span></span>
+        <span><span class="font-medium">${escapeHtml(stop.name)}</span></span>
       </a>
     `;
     
@@ -321,7 +332,7 @@ const selectStop = (stop) => {
           <path d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7Z"/>
           <circle cx="12" cy="9" r="2.5"/>
         </svg>
-        <span class="truncate block max-w-[60vw] md:max-w-none">${stop.name}</span>
+        <span class="truncate block max-w-[60vw] md:max-w-none">${escapeHtml(stop.name)}</span>
       </span>
     `;
     badge.classList.remove('hidden');
@@ -366,12 +377,15 @@ const loadDepartures = async (stopId, duration, forceRefresh = false) => {
     }
   }
   
-  // Filter cached departures based on selected duration
+  // Filter cached departures based on selected duration. The cache is refetched
+  // less often than it is rendered, so also drop rows that already departed.
   const now = Date.now();
+  const minTime = now - DEPARTURE_GRACE_SECONDS * 1000;
   const maxTime = now + (duration * 60 * 1000);
   const filteredItems = state.allDepartures.filter(item => {
     const departureTime = new Date(item.when || item.plannedWhen).getTime();
-    return departureTime <= maxTime;
+    if (Number.isNaN(departureTime)) return false;
+    return departureTime >= minTime && departureTime <= maxTime;
   });
   
   renderDepartures(filteredItems);
@@ -401,11 +415,11 @@ const renderDepartures = (items) => {
       ? `<span class="line-through opacity-40">${fmtTime(departure.plannedWhen)}</span>`
       : `<span>${fmtTime(departure.plannedWhen || departure.when)}</span>`;
 
-    const actualTimeDisplay = hasDelayData
-      ? `<span class="${delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success'} font-semibold">
-           ${hasSignificantDelay ? fmtTime(departure.when) : fmtTime(departure.plannedWhen || departure.when)}
-         </span>`
-      : `<span>${fmtTime(departure.when || departure.plannedWhen)}</span>`;
+    // Only colour the cell when a real delay is shown; otherwise the planned
+    // time is displayed and a red/green tint would be misleading
+    const actualTimeDisplay = hasSignificantDelay
+      ? `<span class="${delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success'} font-semibold">${fmtTime(departure.when)}</span>`
+      : `<span>${fmtTime(departure.plannedWhen || departure.when)}</span>`;
     
     const tr = document.createElement('tr');
     tr.className = 'cursor-pointer hover:bg-base-300 transition-colors';
@@ -419,12 +433,12 @@ const renderDepartures = (items) => {
       <td class="px-2 md:px-3 py-2 md:py-3 text-[0.92rem] md:text-base">
         <div class="flex items-center gap-0.5 md:gap-2">
           <span class="badge badge-xs md:badge-sm ${productBadgeClass(departure.line)} whitespace-nowrap">
-            ${departure.line?.name || departure.line?.id || '?'}
+            ${escapeHtml(departure.line?.name || departure.line?.id || '?')}
           </span>
         </div>
       </td>
       <td class="truncate max-w-[8rem] md:max-w-none px-2 md:px-3 py-2 md:py-3 text-[0.92rem] md:text-base">
-        ${departure.direction || '—'}
+        ${escapeHtml(departure.direction || '—')}
       </td>
     `;
     
@@ -697,6 +711,8 @@ const initTheme = () => {
     const newTheme = themeToggle.checked ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+    // Swap the radar basemap so it matches the new theme immediately
+    if (typeof updateRadarTileLayer === 'function') updateRadarTileLayer();
   });
 };
 
@@ -725,9 +741,12 @@ const handleVisibilityChange = () => {
 const radarState = {
   map: null,
   markers: [],
+  markersByTripId: new Map(),
   stopMarker: null,
   vehicles: [],
-  refreshTimerId: null
+  refreshTimerId: null,
+  tileLayer: null,
+  abort: null
 };
 
 const RADAR_CONFIG = {
@@ -956,6 +975,32 @@ const createPopup = (content) => {
   }).setContent(content);
 };
 
+// CARTO's basemaps CDN now requires an API key, so the dark theme uses
+// Esri's keyless Dark Gray Canvas instead. Both providers are free for
+// low-volume use; see https://operations.osmfoundation.org/policies/tiles/
+const createRadarTileLayer = () => {
+  const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+  return isDarkTheme
+    ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 16
+      })
+    : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      });
+};
+
+// Replaces the basemap when the theme changes, keeping the current view
+const updateRadarTileLayer = () => {
+  if (!radarState.map || !radarState.tileLayer) return;
+  const center = radarState.map.getCenter();
+  const zoom = radarState.map.getZoom();
+  radarState.tileLayer.remove();
+  radarState.tileLayer = createRadarTileLayer().addTo(radarState.map);
+  radarState.map.setView(center, zoom, { animate: false });
+};
+
 const initRadarMap = () => {
   if (radarState.map) return;
   
@@ -967,24 +1012,14 @@ const initRadarMap = () => {
     attributionControl: true
   });
   
-  const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
-  const tileLayer = isDarkTheme
-    ? L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-      })
-    : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-      });
-  
-  tileLayer.addTo(radarState.map);
+  radarState.tileLayer = createRadarTileLayer();
+  radarState.tileLayer.addTo(radarState.map);
   radarState.map.setView([52.52, 13.405], 13);
 };
 
 const clearRadarMarkers = () => {
-  radarState.markers.forEach(marker => marker.remove());
+  radarState.markersByTripId.forEach(marker => marker.remove());
+  radarState.markersByTripId.clear();
   radarState.markers = [];
   
   if (radarState.stopMarker) {
@@ -1001,37 +1036,74 @@ const addStopMarker = (stop) => {
     { icon: createStopIcon() }
   ).addTo(radarState.map);
   
-  const popupContent = createStopPopupContent(stop.name);
-  radarState.stopMarker.bindPopup(createPopup(popupContent));
+  radarState.stopMarker.bindPopup(createPopup(createStopPopupContent(stop.name)));
 };
 
-const addVehicleMarker = (vehicle) => {
-  if (!radarState.map || !vehicle.location?.latitude || !vehicle.location?.longitude) return;
-  
-  const lineName = vehicle.line?.name || '?';
-  const color = getVehicleColor(vehicle.line?.product, lineName);
-  
-  const marker = L.marker(
-    [vehicle.location.latitude, vehicle.location.longitude],
-    { icon: createVehicleIcon(color, lineName) }
-  ).addTo(radarState.map);
-  
-  const popupContent = createVehiclePopupContent(vehicle);
-  marker.bindPopup(createPopup(popupContent));
-  
-  radarState.markers.push(marker);
-};
-
+// Reuse existing markers between refreshes. Tearing down and rebuilding every
+// 10s re-created the DOM and closed any popup the user had open.
 const updateRadarMarkers = () => {
   if (!radarState.map) return;
   
-  clearRadarMarkers();
+  const openMarker = radarState.map._popup?._source || null;
+  const openTripId = openMarker?._vehicleTripId || null;
   
-  if (state.stop) {
-    addStopMarker(state.stop);
+  const seen = new Set();
+  const activeMarkers = [];
+  
+  // Keep the stop marker in sync with the currently selected stop
+  if (state.stop?.location?.latitude) {
+    const latLng = [state.stop.location.latitude, state.stop.location.longitude];
+    if (radarState.stopMarker) {
+      radarState.stopMarker.setLatLng(latLng);
+      radarState.stopMarker.setPopupContent(createStopPopupContent(state.stop.name));
+    } else {
+      addStopMarker(state.stop);
+    }
+  } else if (radarState.stopMarker) {
+    radarState.stopMarker.remove();
+    radarState.stopMarker = null;
   }
   
-  radarState.vehicles.forEach(addVehicleMarker);
+  for (const vehicle of radarState.vehicles) {
+    if (!vehicle.location?.latitude || !vehicle.location?.longitude) continue;
+    
+    const lineName = vehicle.line?.name || '?';
+    const tripId = vehicle.tripId || `${lineName}-${vehicle.location.latitude}-${vehicle.location.longitude}`;
+    let marker = radarState.markersByTripId.get(tripId);
+    
+    if (marker) {
+      marker.setLatLng([vehicle.location.latitude, vehicle.location.longitude]);
+      marker.setIcon(createVehicleIcon(getVehicleColor(vehicle.line?.product, lineName), lineName));
+      marker.setPopupContent(createVehiclePopupContent(vehicle));
+    } else {
+      marker = L.marker(
+        [vehicle.location.latitude, vehicle.location.longitude],
+        { icon: createVehicleIcon(getVehicleColor(vehicle.line?.product, lineName), lineName) }
+      ).addTo(radarState.map);
+      marker.bindPopup(createPopup(createVehiclePopupContent(vehicle)));
+    }
+    
+    marker._vehicleTripId = tripId;
+    radarState.markersByTripId.set(tripId, marker);
+    seen.add(tripId);
+    activeMarkers.push(marker);
+  }
+  
+  // Only remove markers whose vehicle is gone
+  for (const [tripId, marker] of radarState.markersByTripId) {
+    if (!seen.has(tripId)) {
+      marker.remove();
+      radarState.markersByTripId.delete(tripId);
+    }
+  }
+  
+  radarState.markers = activeMarkers;
+  
+  // Reopen the popup the user had open, so it survives the refresh
+  if (openTripId) {
+    const marker = radarState.markersByTripId.get(openTripId);
+    if (marker) marker.openPopup();
+  }
 };
 
 const getStopFromStateOrStorage = () => {
@@ -1113,7 +1185,13 @@ const fetchRadarData = async (showLoading = true) => {
     const radius = RADAR_CONFIG.SEARCH_RADIUS;
     
     const url = `${API_BASE}/radar?north=${lat + radius}&west=${lon - radius}&south=${lat - radius}&east=${lon + radius}&results=${RADAR_CONFIG.MAX_RESULTS}`;
-    const response = await fetch(url);
+    
+    // Cancel any in-flight radar request so a slow response can't overwrite
+    // newer data when the 10s interval fires again
+    radarState.abort?.abort();
+    radarState.abort = new AbortController();
+    
+    const response = await fetch(url, { signal: radarState.abort.signal });
     
     if (!response.ok) {
       throw new Error(`API returned ${response.status}`);
@@ -1122,22 +1200,18 @@ const fetchRadarData = async (showLoading = true) => {
     const data = await response.json();
     const allVehicles = Array.isArray(data) ? data : (data.movements || []);
 
-    const matchedVehicles = filterVehiclesByTripIds(allVehicles, tripIds);
-    
-    radarState.vehicles = matchedVehicles;
-    updateRadarStats(matchedVehicles.length);
+    radarState.vehicles = filterVehiclesByTripIds(allVehicles, tripIds);
+    updateRadarStats(radarState.vehicles.length);
     updateRadarMarkers();
     
-    if (showLoading) {
-      setHidden(radarLoading, true);
-    }
-    
   } catch (error) {
+    if (error.name === 'AbortError') return;
     console.error('Failed to fetch radar data:', error);
+    setHidden($('#radar-error'), false);
+  } finally {
     if (showLoading) {
-      setHidden(radarLoading, true);
+      setHidden($('#radar-loading'), true);
     }
-    setHidden(radarError, false);
   }
 };
 
@@ -1191,6 +1265,9 @@ const stopRadarAutoRefresh = () => {
     clearInterval(radarState.refreshTimerId);
     radarState.refreshTimerId = null;
   }
+  // Drop any in-flight request so nothing repaints after the modal closes
+  radarState.abort?.abort();
+  radarState.abort = null;
 };
 
 const recenterRadar = () => {
@@ -1367,7 +1444,7 @@ const renderJourneySearchResults = (locations, resultsBox) => {
     const li = document.createElement('li');
     li.innerHTML = `
       <a class="justify-between">
-        <span><span class="font-medium">${location.name}</span></span>
+        <span><span class="font-medium">${escapeHtml(location.name)}</span></span>
       </a>
     `;
     
@@ -1450,9 +1527,10 @@ const searchJourneys = async () => {
     // Get departure time from time picker
     const timePicker = $('#journey-time-picker');
     if (timePicker && timePicker.value) {
-      const now = new Date();
-      const [hours, minutes] = timePicker.value.split(':');
-      const departureDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(hours), parseInt(minutes));
+      const [hours, minutes] = timePicker.value.split(':').map(Number);
+      // Time-of-day only: resolved against today, even if already past
+      const departureDate = new Date();
+      departureDate.setHours(hours, minutes, 0, 0);
       
       params.append('departure', departureDate.toISOString());
     } else {

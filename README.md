@@ -99,7 +99,7 @@ Powered by **BVG Transport REST API v6** (`v6.bvg.transport.rest`)
 
 **Data**: [BVG Transport REST API v6](https://v6.bvg.transport.rest) by [transport.rest](https://transport.rest)  
 **Styling**: [Tailwind CSS v4](https://tailwindcss.com) + [daisyUI v5](https://daisyui.com)  
-**Maps**: [Leaflet v1.9.4](https://leafletjs.com) with OpenStreetMap & CartoDB tiles  
+**Maps**: [Leaflet v1.9.4](https://leafletjs.com) with OpenStreetMap tiles (light) and Esri Dark Gray Canvas tiles (dark)  
 **Icons**: Native emoji and Unicode characters
 
 **Created by [Tamer Aktas](https://tameraktas.de)** • 2025
