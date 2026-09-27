@@ -605,11 +605,11 @@ const renderStopovers = (stopovers, departure) => {
       <div class="flex items-center justify-between gap-2 flex-wrap flex-1">
         <div class="flex-1 min-w-0">
           <div class="font-medium truncate ${isCurrent ? 'font-bold' : isPassed ? 'opacity-40' : ''}">
-            ${stopover.stop?.name || 'Unknown'}
+            ${escapeHtml(stopover.stop?.name || 'Unknown')}
           </div>
           <div class="text-sm flex items-center gap-2 flex-wrap mt-0.5 ${isPassed ? 'opacity-30' : 'opacity-70'}">
             ${timeDisplay}
-            ${platform ? `<span class="badge badge-xs badge-outline">Platform ${platform}</span>` : ''}
+            ${platform ? `<span class="badge badge-xs badge-outline">Platform ${escapeHtml(platform)}</span>` : ''}
             ${isCurrent ? `<span class="badge badge-xs text-white" style="background-color: ${lineColor};">Current Stop</span>` : ''}
           </div>
         </div>
@@ -796,8 +796,8 @@ const createVehicleIcon = (color, lineName) => {
   const iconSize = 32;
   const svg = `
     <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="16" cy="16" r="14" fill="${color}" stroke="white" stroke-width="2"/>
-      <text x="16" y="20" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="white">${lineName}</text>
+      <circle cx="16" cy="16" r="14" fill="${escapeHtml(color)}" stroke="white" stroke-width="2"/>
+      <text x="16" y="20" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="white">${escapeHtml(lineName)}</text>
     </svg>
   `;
   
@@ -884,7 +884,7 @@ const createStopPopupContent = (stopName) => {
         <div class="radar-popup-title">Your Stop</div>
       </div>
       <div class="radar-popup-body">
-        <div class="radar-popup-stop-name">${stopName}</div>
+        <div class="radar-popup-stop-name">${escapeHtml(stopName)}</div>
       </div>
     </div>
   `;
@@ -933,14 +933,14 @@ const createVehiclePopupContent = (vehicle) => {
     <div class="radar-popup-container">
       <div class="radar-popup-header">
         <div class="radar-popup-badge" style="background-color: ${color};">
-          ${lineName}
+          ${escapeHtml(lineName)}
         </div>
-        <div class="radar-popup-product">${displayName}</div>
+        <div class="radar-popup-product">${escapeHtml(displayName)}</div>
       </div>
       
       <div class="radar-popup-body">
         <div class="radar-popup-route">
-          <span class="radar-popup-destination">${destination}</span>
+          <span class="radar-popup-destination">${escapeHtml(destination)}</span>
         </div>
         
         ${nextStop ? `
@@ -948,7 +948,7 @@ const createVehiclePopupContent = (vehicle) => {
           <div class="radar-popup-info-grid">
             <div class="radar-popup-info-item">
               <div class="radar-popup-info-label">Next Stop</div>
-              <div class="radar-popup-info-value">${nextStop}</div>
+              <div class="radar-popup-info-value">${escapeHtml(nextStop)}</div>
               ${timeDisplay ? `<div class="radar-popup-info-time">${timeDisplay}</div>` : ''}
             </div>
             ${speed ? `
@@ -1015,17 +1015,6 @@ const initRadarMap = () => {
   radarState.tileLayer = createRadarTileLayer();
   radarState.tileLayer.addTo(radarState.map);
   radarState.map.setView([52.52, 13.405], 13);
-};
-
-const clearRadarMarkers = () => {
-  radarState.markersByTripId.forEach(marker => marker.remove());
-  radarState.markersByTripId.clear();
-  radarState.markers = [];
-  
-  if (radarState.stopMarker) {
-    radarState.stopMarker.remove();
-    radarState.stopMarker = null;
-  }
 };
 
 const addStopMarker = (stop) => {
@@ -1319,7 +1308,7 @@ const journeySearchState = {
   destination: { prevValue: '', suppressBlur: false, abort: null }
 };
 
-const setupJourneyInputListeners = (input, resultsBox, fieldState, isOrigin) => {
+const setupJourneyInputListeners = (input, resultsBox, fieldState) => {
   if (!input || !resultsBox) return;
   
   input.addEventListener('input', debounce(() => {
@@ -1365,8 +1354,8 @@ const setupJourneySearchListeners = () => {
   
   if (!journeyOriginInput || !journeyDestinationInput) return;
   
-  setupJourneyInputListeners(journeyOriginInput, journeyOriginResults, journeySearchState.origin, true);
-  setupJourneyInputListeners(journeyDestinationInput, journeyDestinationResults, journeySearchState.destination, false);
+  setupJourneyInputListeners(journeyOriginInput, journeyOriginResults, journeySearchState.origin);
+  setupJourneyInputListeners(journeyDestinationInput, journeyDestinationResults, journeySearchState.destination);
 };
 
 const searchJourneyStops = async (query, resultsBox, controller) => {
@@ -1579,9 +1568,7 @@ const createJourneyCard = (journey, index) => {
   const lastLeg = journey.legs[journey.legs.length - 1];
   
   const departureTime = firstLeg?.departure || firstLeg?.plannedDeparture;
-  const plannedDepartureTime = firstLeg?.plannedDeparture;
   const arrivalTime = lastLeg?.arrival || lastLeg?.plannedArrival;
-  const plannedArrivalTime = lastLeg?.plannedArrival;
   
   // Calculate departure delay
   const departureDelay = firstLeg?.departureDelay ?? computeDelaySecs(firstLeg?.departure, firstLeg?.plannedDeparture);
@@ -1595,19 +1582,12 @@ const createJourneyCard = (journey, index) => {
   const transitLegs = journey.legs.filter(leg => leg.mode !== 'walking' && leg.line);
   const transfers = Math.max(0, transitLegs.length - 1);
   
-  // Check if any leg has a delay
-  const hasDelays = journey.legs.some(leg => {
-    const depDelay = leg.departureDelay ?? computeDelaySecs(leg.departure, leg.plannedDeparture);
-    const arrDelay = leg.arrivalDelay ?? computeDelaySecs(leg.arrival, leg.plannedArrival);
-    return (depDelay !== null && Math.abs(depDelay) >= 60) || (arrDelay !== null && Math.abs(arrDelay) >= 60);
-  });
-  
   const lineBadges = journey.legs
     .filter(leg => leg.line)
     .map((leg, idx, arr) => {
       const lineName = leg.line.name || leg.line.id || '?';
       const badgeClass = productBadgeClass(leg.line);
-      const badge = `<div class="badge ${badgeClass} badge-sm gap-1">${lineName}</div>`;
+      const badge = `<div class="badge ${badgeClass} badge-sm gap-1">${escapeHtml(lineName)}</div>`;
       const arrow = idx < arr.length - 1 ? '<span class="opacity-40 text-sm mx-0.5">›</span>' : '';
       return badge + arrow;
     })
@@ -1760,12 +1740,12 @@ const renderJourneyLegs = (legs) => {
                     Walk ${duration} min
                   </div>
                 </div>
-                <div class="font-semibold text-sm">${leg.origin?.name || 'Start'}</div>
+                <div class="font-semibold text-sm">${escapeHtml(leg.origin?.name || 'Start')}</div>
               </div>
 
               <div>
                 <div class="text-xs font-semibold tabular-nums opacity-60 mb-1">${fmtTime(arrivalTime)}</div>
-                <div class="font-semibold text-sm">${leg.destination?.name || 'End'}</div>
+                <div class="font-semibold text-sm">${escapeHtml(leg.destination?.name || 'End')}</div>
               </div>
             </div>
           </div>
@@ -1776,7 +1756,6 @@ const renderJourneyLegs = (legs) => {
       const badgeClass = productBadgeClass(leg.line);
       const direction = leg.direction || leg.destination?.name || '—';
       const lineColor = extractLineColor(badgeClass);
-      
       // Calculate delays
       const departureDelay = leg.departureDelay ?? computeDelaySecs(leg.departure, leg.plannedDeparture);
       const arrivalDelay = leg.arrivalDelay ?? computeDelaySecs(leg.arrival, leg.plannedArrival);
@@ -1791,7 +1770,7 @@ const renderJourneyLegs = (legs) => {
             <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: ${lineColor};"></div>
             <div class="flex-1 flex flex-col items-center my-1" style="min-height: 40px;">
               <div class="w-0.5 flex-1" style="background-color: ${lineColor}; opacity: 0.4;"></div>
-              <div class="badge ${badgeClass} badge-xs my-1 px-1.5 py-2 min-h-0 h-auto">${lineName}</div>
+              <div class="badge ${badgeClass} badge-xs my-1 px-1.5 py-2 min-h-0 h-auto">${escapeHtml(lineName)}</div>
               <div class="w-0.5 flex-1" style="background-color: ${lineColor}; opacity: 0.4;"></div>
             </div>
             <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: ${lineColor};"></div>
@@ -1808,8 +1787,8 @@ const renderJourneyLegs = (legs) => {
                 `}
                 ${stopText ? `<div class="badge badge-ghost badge-xs">${stopText}</div>` : ''}
               </div>
-              <div class="font-semibold text-sm mb-0.5">${leg.origin?.name || 'Departure'}</div>
-              <div class="text-xs opacity-60 truncate">→ ${direction}</div>
+              <div class="font-semibold text-sm mb-0.5">${escapeHtml(leg.origin?.name || 'Departure')}</div>
+              <div class="text-xs opacity-60 truncate">→ ${escapeHtml(direction)}</div>
             </div>
             
             <div>
@@ -1821,7 +1800,7 @@ const renderJourneyLegs = (legs) => {
                   <span class="text-xs font-semibold tabular-nums opacity-60">${fmtTime(arrivalTime)}</span>
                 `}
               </div>
-              <div class="font-semibold text-sm">${leg.destination?.name || 'Arrival'}</div>
+              <div class="font-semibold text-sm">${escapeHtml(leg.destination?.name || 'Arrival')}</div>
             </div>
           </div>
         </div>
