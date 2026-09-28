@@ -16,8 +16,10 @@ const CACHE_DURATION_MINUTES = 60; // Always fetch 60 minutes of departures
 const SEARCH_DEBOUNCE_MS = 350;
 const DEPARTURE_GRACE_SECONDS = 30; // Keep just-departed rows briefly while boarding
 
-// U-Bahn line color mapping (Berlin official colors)
-const U_BAHN_COLORS = {
+// Lookup tables are plain object literals, so an API-supplied name like
+// "constructor" or "toString" would resolve to an inherited Object member
+// instead of missing. Use null-prototype maps so lookups only hit own keys.
+const U_BAHN_COLORS = Object.assign(Object.create(null), {
   U1: { bg: '#57A639', text: 'white' },  // Yellow Green
   U2: { bg: '#C63927', text: 'white' },  // Vermillion
   U3: { bg: '#00694C', text: 'white' },  // Turquoise Green
@@ -27,10 +29,10 @@ const U_BAHN_COLORS = {
   U7: { bg: '#0080AB', text: 'white' },  // Light Blue
   U8: { bg: '#004F7C', text: 'white' },  // Gentian Blue
   U9: { bg: '#FA842B', text: 'white' },  // Pastel Orange
-};
+});
 
 // Transport type color mapping
-const PRODUCT_COLORS = {
+const PRODUCT_COLORS = Object.assign(Object.create(null), {
   subway: 'badge-primary',
   suburban: 'bg-[#006E34] text-white',   // S-Bahn green
   tram: 'bg-[#CC0000] text-white',       // Tram red
@@ -38,7 +40,7 @@ const PRODUCT_COLORS = {
   ferry: 'bg-[#009EE0] text-white',      // Ferry blue
   regional: 'bg-[#D50000] text-white',   // DB Regional red
   express: 'bg-[#EC0016] text-white',    // DB Express red
-};
+});
 
 // ============================================================================
 // APPLICATION STATE
@@ -131,7 +133,10 @@ const productBadgeClass = (line) => {
 
 // Extract color from badge class for timeline visualization
 const extractLineColor = (badgeClass) => {
-  const colorMatch = badgeClass.match(/bg-\[([#\w]+)\]/);
+  // Tolerate a non-string here: the class feeds .match() and .includes(),
+  // and a stray value would otherwise throw mid-render
+  if (typeof badgeClass !== 'string') return '#0080AB';
+  const colorMatch = badgeClass.match(/bg-\[#(\w+)\]/);
   if (colorMatch) return colorMatch[1];
   if (badgeClass.includes('badge-primary')) return '#0080AB';
   return '#0080AB'; // Default fallback
@@ -758,7 +763,7 @@ const RADAR_CONFIG = {
 };
 
 // Extract hex colors from PRODUCT_COLORS for use in SVG markers
-const PRODUCT_HEX_COLORS = {
+const PRODUCT_HEX_COLORS = Object.assign(Object.create(null), {
   subway: '#57A639',
   suburban: '#006E34',
   tram: '#CC0000',
@@ -767,7 +772,7 @@ const PRODUCT_HEX_COLORS = {
   regional: '#D50000',
   express: '#EC0016',
   default: '#64748b'
-};
+});
 
 const getVehicleColor = (product, lineName) => {
   if (!product) return PRODUCT_HEX_COLORS.default;
