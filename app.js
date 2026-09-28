@@ -131,13 +131,16 @@ const productBadgeClass = (line) => {
   return PRODUCT_COLORS[product] || 'badge-ghost';
 };
 
-// Extract color from badge class for timeline visualization
+// Extract color from badge class for timeline visualization.
+// The regex captures bare digits (e.g. "006E34"), so the leading "#" must be
+// re-added: without it the value is not a valid CSS color and every element
+// styled with it resolves to transparent, hiding the upcoming-stop markers.
 const extractLineColor = (badgeClass) => {
   // Tolerate a non-string here: the class feeds .match() and .includes(),
   // and a stray value would otherwise throw mid-render
   if (typeof badgeClass !== 'string') return '#0080AB';
   const colorMatch = badgeClass.match(/bg-\[#(\w+)\]/);
-  if (colorMatch) return colorMatch[1];
+  if (colorMatch) return `#${colorMatch[1]}`;
   if (badgeClass.includes('badge-primary')) return '#0080AB';
   return '#0080AB'; // Default fallback
 };
