@@ -30,9 +30,9 @@
 
 ## 🚀 Quick Start
 
-1) Download/clone this folder
-2) Open `index.html` in your browser
-3) Optional: serve locally for best results (geolocation typically requires HTTPS or `localhost`)
+1. Download/clone this folder
+2. Open `index.html` in your browser
+3. Optional: serve locally for best results (geolocation typically requires HTTPS or `localhost`)
 
 Tip: If your browser blocks location, click the 📍 button after granting permission or choose a stop via search.
 
@@ -93,6 +93,7 @@ Powered by **BVG Transport REST API v6** (`v6.bvg.transport.rest`)
 │                   #   - Theme management and persistence
 └── README.md       # This file
 ```
+
 ---
 
 ## 🙌 Credits

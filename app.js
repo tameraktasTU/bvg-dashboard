@@ -115,7 +115,7 @@ const setLastUpdate = () => {
 const productBadgeClass = (line) => {
   const product = line?.product;
   const tag = String(line?.name || line?.id || '');
-  
+
   // Handle U-Bahn lines with specific colors
   if (product === 'subway') {
     const match = /U\s?([1-9])\b/i.exec(tag);
@@ -127,7 +127,7 @@ const productBadgeClass = (line) => {
       }
     }
   }
-  
+
   return PRODUCT_COLORS[product] || 'badge-ghost';
 };
 
@@ -177,29 +177,29 @@ const debounce = (fn, ms = 300) => {
 
 const searchStops = async (query) => {
   const trimmedQuery = query?.trim();
-  
+
   if (!trimmedQuery || trimmedQuery.length < 2) {
     resultsBox.classList.add('hidden');
     resultsBox.innerHTML = '';
     return;
   }
-  
+
   if (searchAbort) searchAbort.abort();
   const controller = new AbortController();
   searchAbort = controller;
-  
+
   const url = `${API_BASE}/locations?query=${encodeURIComponent(trimmedQuery)}&results=8&stops=true&addresses=false&poi=false&language=en&pretty=false`;
   resultsBox.innerHTML = '<progress class="progress w-full"></progress>';
   resultsBox.classList.remove('hidden');
-  
+
   try {
-    const res = await fetch(url, { 
-      signal: controller.signal, 
-      headers: { accept: 'application/json' } 
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { accept: 'application/json' }
     });
-    
+
     if (!res.ok) throw new Error('Search failed');
-    
+
     const items = await res.json();
     const stops = items.filter(x => x.type === 'stop');
     renderSearchResults(stops);
@@ -216,11 +216,11 @@ const renderSearchResults = (stops) => {
     resultsBox.innerHTML = '<div class="p-3 text-sm opacity-70">No results</div>';
     return;
   }
-  
+
   resultsBox.innerHTML = '';
   const ul = document.createElement('ul');
   ul.className = 'menu bg-base-200 rounded-box';
-  
+
   stops.forEach(stop => {
     const li = document.createElement('li');
     li.innerHTML = `
@@ -228,7 +228,7 @@ const renderSearchResults = (stops) => {
         <span><span class="font-medium">${escapeHtml(stop.name)}</span></span>
       </a>
     `;
-    
+
     li.addEventListener('click', () => {
       selectStop(stop);
       resultsBox.classList.add('hidden');
@@ -237,17 +237,17 @@ const renderSearchResults = (stops) => {
       searchPrevValue = stop.name;
       suppressBlur = false;
       searchInput.blur();
-      
+
       setTimeout(() => {
         if (document.activeElement === searchInput) {
           $('#refresh-now')?.focus();
         }
       }, 0);
     });
-    
+
     ul.appendChild(li);
   });
-  
+
   resultsBox.appendChild(ul);
 };
 
@@ -260,19 +260,19 @@ const findNearbyStops = async () => {
     showToast('Geolocation not supported', 'warning');
     return;
   }
-  
+
   resultsBox.classList.remove('hidden');
   resultsBox.innerHTML = '<div class="p-3">Locating… <progress class="progress w-24 ml-2"></progress></div>';
-  
+
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
       try {
         const { latitude, longitude } = pos.coords;
         const url = `${API_BASE}/locations/nearby?latitude=${latitude}&longitude=${longitude}&results=8&stops=true&poi=false&language=en&pretty=false`;
         const res = await fetch(url, { headers: { accept: 'application/json' } });
-        
+
         if (!res.ok) throw new Error('Nearby search failed');
-        
+
         const items = await res.json();
         const stops = items.filter(x => x.type === 'stop');
         renderSearchResults(stops);
@@ -320,8 +320,8 @@ searchInput.addEventListener('keydown', (e) => {
 });
 
 resultsBox.addEventListener('mousedown', () => { suppressBlur = true; });
-resultsBox.addEventListener('mouseup', () => { 
-  setTimeout(() => { suppressBlur = false; }, 0); 
+resultsBox.addEventListener('mouseup', () => {
+  setTimeout(() => { suppressBlur = false; }, 0);
 });
 
 // ============================================================================
@@ -331,7 +331,7 @@ resultsBox.addEventListener('mouseup', () => {
 const selectStop = (stop) => {
   state.stop = stop;
   state.allDepartures = [];
-  
+
   const badge = $('#departures-stop');
   if (badge) {
     badge.innerHTML = `
@@ -345,13 +345,13 @@ const selectStop = (stop) => {
     `;
     badge.classList.remove('hidden');
   }
-  
-  localStorage.setItem('selectedStop', JSON.stringify({ 
-    id: stop.id, 
+
+  localStorage.setItem('selectedStop', JSON.stringify({
+    id: stop.id,
     name: stop.name,
     location: stop.location
   }));
-  
+
   refreshAll();
 };
 
@@ -362,11 +362,11 @@ const selectStop = (stop) => {
 const loadDepartures = async (stopId, duration, forceRefresh = false) => {
   setHidden($('#departures-loading'), false);
   setHidden($('#departures-empty'), true);
-  
+
   // Fetch fresh data if forced or cache is empty
   if (forceRefresh || state.allDepartures.length === 0) {
     const url = `${API_BASE}/stops/${encodeURIComponent(stopId)}/departures?duration=${CACHE_DURATION_MINUTES}&remarks=true&language=en&pretty=false`;
-    
+
     try {
       const list = await fetchJSON(url);
       const items = Array.isArray(list) ? list : (list?.departures || list?.results || []);
@@ -376,7 +376,7 @@ const loadDepartures = async (stopId, duration, forceRefresh = false) => {
         const timeB = new Date(b.when || b.plannedWhen || 0).getTime();
         return timeA - timeB;
       });
-      
+
       state.allDepartures = items;
     } catch (e) {
       showToast('Failed to load departures', 'error');
@@ -384,7 +384,7 @@ const loadDepartures = async (stopId, duration, forceRefresh = false) => {
       return;
     }
   }
-  
+
   // Filter cached departures based on selected duration. The cache is refetched
   // less often than it is rendered, so also drop rows that already departed.
   const now = Date.now();
@@ -395,7 +395,7 @@ const loadDepartures = async (stopId, duration, forceRefresh = false) => {
     if (Number.isNaN(departureTime)) return false;
     return departureTime >= minTime && departureTime <= maxTime;
   });
-  
+
   renderDepartures(filteredItems);
   setHidden($('#departures-loading'), true);
 };
@@ -404,16 +404,16 @@ const renderDepartures = (items) => {
   const tbody = $('#departures-body');
   tbody.innerHTML = '';
   $('#departures-count').textContent = items.length;
-  
+
   if (!items.length) {
     setHidden($('#departures-empty'), false);
     const msgEl = $('#departures-empty-msg');
     if (msgEl) msgEl.textContent = 'No departures in this time window.';
     return;
   }
-  
+
   const fragment = document.createDocumentFragment();
-  
+
   items.forEach(departure => {
     const delay = departure.delay ?? computeDelaySecs(departure.when, departure.plannedWhen);
     const hasDelayData = delay !== null;
@@ -428,7 +428,7 @@ const renderDepartures = (items) => {
     const actualTimeDisplay = hasSignificantDelay
       ? `<span class="${delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success'} font-semibold">${fmtTime(departure.when)}</span>`
       : `<span>${fmtTime(departure.plannedWhen || departure.when)}</span>`;
-    
+
     const tr = document.createElement('tr');
     tr.className = 'cursor-pointer hover:bg-base-300 transition-colors';
     tr.innerHTML = `
@@ -449,11 +449,11 @@ const renderDepartures = (items) => {
         ${escapeHtml(departure.direction || '—')}
       </td>
     `;
-    
+
     tr.addEventListener('click', () => showLineOverview(departure));
     fragment.appendChild(tr);
   });
-  
+
   tbody.appendChild(fragment);
 };
 
@@ -473,30 +473,30 @@ const showLineOverview = async (departure) => {
   const loading = $('#modal-loading');
   const errorDiv = $('#modal-error');
   const container = $('#stopovers-container');
-  
+
   // Set header info
   lineBadge.className = `badge badge-lg ${productBadgeClass(departure.line)}`;
   lineBadge.textContent = departure.line?.name || departure.line?.id || '?';
   lineDirection.textContent = departure.direction || 'Unknown';
-  
+
   // Show modal and loading state
   modal.showModal();
   setHidden(loading, false);
   setHidden(errorDiv, true);
   container.innerHTML = '';
-  
+
   try {
     if (!departure.tripId) {
       throw new Error('No trip ID available');
     }
-    
+
     const trip = await fetchTripDetails(departure.tripId);
     const stopovers = trip?.stopovers || trip?.trip?.stopovers || [];
-    
+
     if (!stopovers.length) {
       throw new Error('No stopovers found');
     }
-    
+
     renderStopovers(stopovers, departure);
   } catch (e) {
     setHidden(errorDiv, false);
@@ -514,19 +514,19 @@ const findCurrentStopIndex = (stopovers, departure) => {
   const currentStopName = state.stop?.name;
   const departureStopId = departure.stop?.id;
   const departureStopName = departure.stop?.name;
-  
+
   // Strat 1: Exact ID match with state.stop
   if (currentStopId) {
     const idx = stopovers.findIndex(s => s.stop?.id === currentStopId);
     if (idx !== -1) return idx;
   }
-  
+
   // Strat 2: Exact ID match with departure.stop
   if (departureStopId) {
     const idx = stopovers.findIndex(s => s.stop?.id === departureStopId);
     if (idx !== -1) return idx;
   }
-  
+
   // Strat 3: Name matching with state.stop
   if (currentStopName) {
     const idx = stopovers.findIndex(s => {
@@ -536,7 +536,7 @@ const findCurrentStopIndex = (stopovers, departure) => {
     });
     if (idx !== -1) return idx;
   }
-  
+
   // Strat 4: Name matching with departure.stop
   if (departureStopName) {
     const idx = stopovers.findIndex(s => {
@@ -546,28 +546,28 @@ const findCurrentStopIndex = (stopovers, departure) => {
     });
     if (idx !== -1) return idx;
   }
-  
+
   return -1;
 };
 
 const renderStopovers = (stopovers, departure) => {
   const container = $('#stopovers-container');
   container.innerHTML = '';
-  
+
   const currentIndex = findCurrentStopIndex(stopovers, departure);
   const badgeClass = productBadgeClass(departure.line);
   const lineColor = extractLineColor(badgeClass);
-  
+
   const timeline = document.createElement('div');
   timeline.className = 'flex flex-col gap-0 pl-2';
-  
+
   stopovers.forEach((stopover, idx) => {
     const isPassed = currentIndex !== -1 && idx < currentIndex;
     const isCurrent = idx === currentIndex;
-    
+
     const stopDiv = document.createElement('div');
     stopDiv.className = 'flex items-stretch gap-3 relative mb-2';
-    
+
     if (isCurrent) {
       stopDiv.className += ' rounded-lg';
       stopDiv.id = 'current-stop-item';
@@ -575,7 +575,7 @@ const renderStopovers = (stopovers, departure) => {
 
     const indicatorColor = (isPassed || isCurrent) ? '#9ca3af' : lineColor;
     const lineColorValue = isPassed ? '#9ca3af' : lineColor;
-    
+
     const timelineIndicator = document.createElement('div');
     timelineIndicator.className = 'flex flex-col items-center flex-shrink-0 relative';
     timelineIndicator.innerHTML = `
@@ -587,10 +587,10 @@ const renderStopovers = (stopovers, departure) => {
     const actualTime = stopover.departure || stopover.arrival;
     const plannedTime = stopover.plannedDeparture || stopover.plannedArrival;
     const platform = stopover.platform || stopover.plannedPlatform;
-    
-    const delay = stopover.departureDelay ?? stopover.arrivalDelay ?? 
-                  computeDelaySecs(actualTime, plannedTime);
-    
+
+    const delay = stopover.departureDelay ?? stopover.arrivalDelay ??
+      computeDelaySecs(actualTime, plannedTime);
+
     const hasDelayData = delay !== null;
     const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
 
@@ -606,7 +606,7 @@ const renderStopovers = (stopovers, departure) => {
     } else {
       timeDisplay = `<span class="font-mono font-medium">${fmtTime(actualTime || plannedTime) || '—'}</span>`;
     }
-    
+
     const infoDiv = document.createElement('div');
     infoDiv.className = 'flex-1 min-w-0 flex items-center px-3';
     infoDiv.innerHTML = `
@@ -623,14 +623,14 @@ const renderStopovers = (stopovers, departure) => {
         </div>
       </div>
     `;
-    
+
     stopDiv.appendChild(timelineIndicator);
     stopDiv.appendChild(infoDiv);
     timeline.appendChild(stopDiv);
   });
-  
+
   container.appendChild(timeline);
-  
+
   // Auto-scroll to current stop
   setTimeout(() => {
     const currentStopElement = $('#current-stop-item');
@@ -653,7 +653,7 @@ const refreshAll = async () => {
     if (msgEl) msgEl.textContent = 'No stop/station selected.';
     return;
   }
-  
+
   const activeTab = $('#duration-tabs .tab.tab-active');
   const duration = activeTab ? Number(activeTab.getAttribute('data-minutes')) : 30;
   await loadDepartures(state.stop.id, duration, true);
@@ -674,12 +674,12 @@ const updateTabIndicator = () => {
   const activeTab = $('#duration-tabs .tab.tab-active');
   const container = $('#duration-tabs');
   if (!activeTab || !container) return;
-  
+
   const containerRect = container.getBoundingClientRect();
   const tabRect = activeTab.getBoundingClientRect();
   const left = tabRect.left - containerRect.left;
   const width = tabRect.width;
-  
+
   container.style.setProperty('--indicator-left', `${left}px`);
   container.style.setProperty('--indicator-width', `${width}px`);
 };
@@ -687,14 +687,14 @@ const updateTabIndicator = () => {
 $('#duration-tabs')?.addEventListener('click', async (e) => {
   const tab = e.target.closest('.tab');
   if (!tab) return;
-  
+
   $$('#duration-tabs .tab').forEach(el => el.classList.remove('tab-active'));
   tab.classList.add('tab-active');
   updateTabIndicator();
-  
+
   const duration = tab.getAttribute('data-minutes');
   localStorage.setItem('selectedDuration', duration);
-  
+
   if (state.stop) {
     await loadDepartures(state.stop.id, Number(duration), false);
   }
@@ -707,14 +707,14 @@ $('#duration-tabs')?.addEventListener('click', async (e) => {
 const initTheme = () => {
   const themeToggle = $('#theme-toggle');
   let theme = localStorage.getItem('theme');
-  
+
   if (!theme) {
     theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
-  
+
   document.documentElement.setAttribute('data-theme', theme);
   themeToggle.checked = theme === 'dark';
-  
+
   themeToggle.addEventListener('change', () => {
     const newTheme = themeToggle.checked ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', newTheme);
@@ -733,11 +733,11 @@ const handleVisibilityChange = () => {
     if (state.refreshTimerId) clearInterval(state.refreshTimerId);
   } else {
     const timeSinceLastRefresh = Date.now() - (state.lastRefreshTime || 0);
-    
+
     if (timeSinceLastRefresh >= REFRESH_INTERVAL_MS) {
       refreshAll();
     }
-    
+
     startFixedRefresh();
   }
 };
@@ -779,9 +779,9 @@ const PRODUCT_HEX_COLORS = Object.assign(Object.create(null), {
 
 const getVehicleColor = (product, lineName) => {
   if (!product) return PRODUCT_HEX_COLORS.default;
-  
+
   const productType = product.toLowerCase();
-  
+
   if (productType.includes('subway') || productType.includes('u-bahn')) {
     if (lineName) {
       const uBahnColor = U_BAHN_COLORS[lineName.toUpperCase()];
@@ -789,14 +789,14 @@ const getVehicleColor = (product, lineName) => {
     }
     return PRODUCT_HEX_COLORS.subway;
   }
-  
+
   if (productType.includes('suburban') || productType.includes('s-bahn')) return PRODUCT_HEX_COLORS.suburban;
   if (productType.includes('tram') || productType.includes('strassenbahn')) return PRODUCT_HEX_COLORS.tram;
   if (productType.includes('bus')) return PRODUCT_HEX_COLORS.bus;
   if (productType.includes('ferry') || productType.includes('fähre')) return PRODUCT_HEX_COLORS.ferry;
   if (productType.includes('regional')) return PRODUCT_HEX_COLORS.regional;
   if (productType.includes('express')) return PRODUCT_HEX_COLORS.express;
-  
+
   return PRODUCT_HEX_COLORS.default;
 };
 
@@ -808,7 +808,7 @@ const createVehicleIcon = (color, lineName) => {
       <text x="16" y="20" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="white">${escapeHtml(lineName)}</text>
     </svg>
   `;
-  
+
   return L.divIcon({
     html: svg,
     className: 'vehicle-marker',
@@ -828,7 +828,7 @@ const createStopIcon = () => {
       <circle cx="20" cy="20" r="8" fill="currentColor"/>
     </svg>
   `;
-  
+
   return L.divIcon({
     html: svg,
     className: 'stop-marker',
@@ -843,9 +843,9 @@ const createStopIcon = () => {
 
 const getProductDisplayName = (product) => {
   if (!product) return 'Vehicle';
-  
+
   const productLower = product.toLowerCase();
-  
+
   if (productLower.includes('subway') || productLower.includes('u-bahn')) return 'U-Bahn';
   if (productLower.includes('suburban') || productLower.includes('s-bahn')) return 'S-Bahn';
   if (productLower.includes('tram') || productLower.includes('strassenbahn')) return 'Tram';
@@ -853,7 +853,7 @@ const getProductDisplayName = (product) => {
   if (productLower.includes('ferry') || productLower.includes('fähre')) return 'Ferry';
   if (productLower.includes('regional')) return 'Regional';
   if (productLower.includes('express')) return 'Express';
-  
+
   return product; // Return original if no match
 };
 
@@ -861,12 +861,12 @@ const getUpcomingStopover = (vehicle) => {
   if (!vehicle.nextStopovers || vehicle.nextStopovers.length === 0) {
     return null;
   }
-  
+
   const now = Date.now();
-  
+
   for (const stopover of vehicle.nextStopovers) {
     const departureTime = stopover.departure || stopover.plannedDeparture;
-    
+
     if (departureTime) {
       const depTime = new Date(departureTime).getTime();
       if (depTime > now) {
@@ -880,7 +880,7 @@ const getUpcomingStopover = (vehicle) => {
       }
     }
   }
-  
+
   return vehicle.nextStopovers[0];
 };
 
@@ -909,16 +909,16 @@ const createVehiclePopupContent = (vehicle) => {
 
   const nextStopover = getUpcomingStopover(vehicle);
   const nextStop = nextStopover?.stop?.name;
-  
+
   // Get actual and planned times
   const actualTime = nextStopover?.arrival || nextStopover?.departure;
   const plannedTime = nextStopover?.plannedArrival || nextStopover?.plannedDeparture;
-  
+
   const speed = vehicle.speed ? `${Math.round(vehicle.speed)} km/h` : null;
 
-  const delay = nextStopover?.arrivalDelay ?? nextStopover?.departureDelay ?? 
-                computeDelaySecs(actualTime, plannedTime);
-  
+  const delay = nextStopover?.arrivalDelay ?? nextStopover?.departureDelay ??
+    computeDelaySecs(actualTime, plannedTime);
+
   const hasDelayData = delay !== null;
   const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
 
@@ -936,7 +936,7 @@ const createVehiclePopupContent = (vehicle) => {
       timeDisplay = `<span>${fmtTime(actualTime || plannedTime)}</span>`;
     }
   }
-  
+
   return `
     <div class="radar-popup-container">
       <div class="radar-popup-header">
@@ -990,13 +990,13 @@ const createRadarTileLayer = () => {
   const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
   return isDarkTheme
     ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 16
-      })
+      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 16
+    })
     : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-      });
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    });
 };
 
 // Replaces the basemap when the theme changes, keeping the current view
@@ -1011,15 +1011,15 @@ const updateRadarTileLayer = () => {
 
 const initRadarMap = () => {
   if (radarState.map) return;
-  
+
   const mapElement = $('#radar-map');
   if (!mapElement) return;
-  
+
   radarState.map = L.map('radar-map', {
     zoomControl: false,
     attributionControl: true
   });
-  
+
   radarState.tileLayer = createRadarTileLayer();
   radarState.tileLayer.addTo(radarState.map);
   radarState.map.setView([52.52, 13.405], 13);
@@ -1027,12 +1027,12 @@ const initRadarMap = () => {
 
 const addStopMarker = (stop) => {
   if (!radarState.map || !stop?.location?.latitude || !stop?.location?.longitude) return;
-  
+
   radarState.stopMarker = L.marker(
     [stop.location.latitude, stop.location.longitude],
     { icon: createStopIcon() }
   ).addTo(radarState.map);
-  
+
   radarState.stopMarker.bindPopup(createPopup(createStopPopupContent(stop.name)));
 };
 
@@ -1040,13 +1040,13 @@ const addStopMarker = (stop) => {
 // 10s re-created the DOM and closed any popup the user had open.
 const updateRadarMarkers = () => {
   if (!radarState.map) return;
-  
+
   const openMarker = radarState.map._popup?._source || null;
   const openTripId = openMarker?._vehicleTripId || null;
-  
+
   const seen = new Set();
   const activeMarkers = [];
-  
+
   // Keep the stop marker in sync with the currently selected stop
   if (state.stop?.location?.latitude) {
     const latLng = [state.stop.location.latitude, state.stop.location.longitude];
@@ -1060,14 +1060,14 @@ const updateRadarMarkers = () => {
     radarState.stopMarker.remove();
     radarState.stopMarker = null;
   }
-  
+
   for (const vehicle of radarState.vehicles) {
     if (!vehicle.location?.latitude || !vehicle.location?.longitude) continue;
-    
+
     const lineName = vehicle.line?.name || '?';
     const tripId = vehicle.tripId || `${lineName}-${vehicle.location.latitude}-${vehicle.location.longitude}`;
     let marker = radarState.markersByTripId.get(tripId);
-    
+
     if (marker) {
       marker.setLatLng([vehicle.location.latitude, vehicle.location.longitude]);
       marker.setIcon(createVehicleIcon(getVehicleColor(vehicle.line?.product, lineName), lineName));
@@ -1079,13 +1079,13 @@ const updateRadarMarkers = () => {
       ).addTo(radarState.map);
       marker.bindPopup(createPopup(createVehiclePopupContent(vehicle)));
     }
-    
+
     marker._vehicleTripId = tripId;
     radarState.markersByTripId.set(tripId, marker);
     seen.add(tripId);
     activeMarkers.push(marker);
   }
-  
+
   // Only remove markers whose vehicle is gone
   for (const [tripId, marker] of radarState.markersByTripId) {
     if (!seen.has(tripId)) {
@@ -1093,9 +1093,9 @@ const updateRadarMarkers = () => {
       radarState.markersByTripId.delete(tripId);
     }
   }
-  
+
   radarState.markers = activeMarkers;
-  
+
   // Reopen the popup the user had open, so it survives the refresh
   if (openTripId) {
     const marker = radarState.markersByTripId.get(openTripId);
@@ -1107,7 +1107,7 @@ const getStopFromStateOrStorage = () => {
   if (state.stop?.location?.latitude && state.stop?.location?.longitude) {
     return state.stop;
   }
-  
+
   try {
     const savedStop = JSON.parse(localStorage.getItem('selectedStop') || 'null');
     if (savedStop?.location?.latitude && savedStop?.location?.longitude) {
@@ -1117,14 +1117,14 @@ const getStopFromStateOrStorage = () => {
   } catch (error) {
     console.error('Failed to restore stop from localStorage:', error);
   }
-  
+
   return null;
 };
 
 const updateRadarStats = (vehicleCount) => {
   const statsDiv = $('#radar-stats');
   if (!statsDiv) return;
-  
+
   statsDiv.innerHTML = `
     <div class="text-xs opacity-70">Vehicles: <span class="font-bold">${vehicleCount}</span></div>
   `;
@@ -1132,7 +1132,7 @@ const updateRadarStats = (vehicleCount) => {
 
 const filterVehiclesByTripIds = (vehicles, tripIds) => {
   if (!tripIds || tripIds.size === 0) return [];
-  
+
   return vehicles.filter(vehicle => {
     return vehicle.tripId && tripIds.has(vehicle.tripId);
   });
@@ -1141,12 +1141,12 @@ const filterVehiclesByTripIds = (vehicles, tripIds) => {
 const fetchRadarData = async (showLoading = true) => {
   const radarLoading = $('#radar-loading');
   const radarError = $('#radar-error');
-  
+
   if (showLoading) {
     setHidden(radarLoading, false);
   }
   setHidden(radarError, true);
-  
+
   try {
     const stop = getStopFromStateOrStorage();
     if (!stop) {
@@ -1160,14 +1160,14 @@ const fetchRadarData = async (showLoading = true) => {
       const items = Array.isArray(deptData) ? deptData : (deptData?.departures || deptData?.results || []);
       state.allDepartures = items;
     }
-    
+
     // Extract all tripIds from departures
     const tripIds = new Set(
       state.allDepartures
         .filter(dep => dep.tripId)
         .map(dep => dep.tripId)
     );
-    
+
     if (tripIds.size === 0) {
       radarState.vehicles = [];
       updateRadarStats(0);
@@ -1177,30 +1177,30 @@ const fetchRadarData = async (showLoading = true) => {
       }
       return;
     }
-    
+
     const { latitude: lat, longitude: lon } = stop.location;
     const radius = RADAR_CONFIG.SEARCH_RADIUS;
-    
+
     const url = `${API_BASE}/radar?north=${lat + radius}&west=${lon - radius}&south=${lat - radius}&east=${lon + radius}&results=${RADAR_CONFIG.MAX_RESULTS}`;
-    
+
     // Cancel any in-flight radar request so a slow response can't overwrite
     // newer data when the 10s interval fires again
     radarState.abort?.abort();
     radarState.abort = new AbortController();
-    
+
     const response = await fetch(url, { signal: radarState.abort.signal });
-    
+
     if (!response.ok) {
       throw new Error(`API returned ${response.status}`);
     }
-    
+
     const data = await response.json();
     const allVehicles = Array.isArray(data) ? data : (data.movements || []);
 
     radarState.vehicles = filterVehiclesByTripIds(allVehicles, tripIds);
     updateRadarStats(radarState.vehicles.length);
     updateRadarMarkers();
-    
+
   } catch (error) {
     if (error.name === 'AbortError') return;
     console.error('Failed to fetch radar data:', error);
@@ -1214,24 +1214,24 @@ const fetchRadarData = async (showLoading = true) => {
 
 const centerMapOnStop = () => {
   if (!radarState.map || !state.stop?.location) return;
-  
+
   const { latitude, longitude } = state.stop.location;
   radarState.map.setView([latitude, longitude], RADAR_CONFIG.DEFAULT_ZOOM);
 };
 
 const openRadarModal = async () => {
   const stop = getStopFromStateOrStorage();
-  
+
   if (!stop) {
     showToast('Please select a stop first', 'warning');
     return;
   }
-  
+
   const modal = $('#radar-modal');
   if (!modal) return;
-  
+
   modal.showModal();
-  
+
   if (!radarState.map) {
     setTimeout(async () => {
       initRadarMap();
@@ -1269,7 +1269,7 @@ const stopRadarAutoRefresh = () => {
 
 const recenterRadar = () => {
   if (!radarState.map || !state.stop?.location) return;
-  
+
   const { latitude, longitude } = state.stop.location;
   radarState.map.setView([latitude, longitude], RADAR_CONFIG.DEFAULT_ZOOM, { animate: true });
 };
@@ -1286,9 +1286,11 @@ const switchView = (viewName) => {
   state.currentView = viewName;
 
   const views = {
-    departures: { element: $('#departures-view'), onShow: () => {
-      setTimeout(() => requestAnimationFrame(updateTabIndicator), 0);
-    }},
+    departures: {
+      element: $('#departures-view'), onShow: () => {
+        setTimeout(() => requestAnimationFrame(updateTabIndicator), 0);
+      }
+    },
     journey: { element: $('#journey-view') },
     settings: { element: $('#settings-view') }
   };
@@ -1303,7 +1305,7 @@ const switchView = (viewName) => {
 
   $$('.dock button').forEach(btn => btn.classList.remove('dock-active'));
   $(`#dock-${viewName}`)?.classList.add('dock-active');
-  
+
   localStorage.setItem('currentView', viewName);
 };
 
@@ -1318,7 +1320,7 @@ const journeySearchState = {
 
 const setupJourneyInputListeners = (input, resultsBox, fieldState) => {
   if (!input || !resultsBox) return;
-  
+
   input.addEventListener('input', debounce(() => {
     if (fieldState.abort) fieldState.abort.abort();
     const controller = new AbortController();
@@ -1349,8 +1351,8 @@ const setupJourneyInputListeners = (input, resultsBox, fieldState) => {
   });
 
   resultsBox.addEventListener('mousedown', () => { fieldState.suppressBlur = true; });
-  resultsBox.addEventListener('mouseup', () => { 
-    setTimeout(() => { fieldState.suppressBlur = false; }, 0); 
+  resultsBox.addEventListener('mouseup', () => {
+    setTimeout(() => { fieldState.suppressBlur = false; }, 0);
   });
 };
 
@@ -1359,34 +1361,34 @@ const setupJourneySearchListeners = () => {
   const journeyDestinationInput = $('#journey-destination');
   const journeyOriginResults = $('#journey-origin-results');
   const journeyDestinationResults = $('#journey-destination-results');
-  
+
   if (!journeyOriginInput || !journeyDestinationInput) return;
-  
+
   setupJourneyInputListeners(journeyOriginInput, journeyOriginResults, journeySearchState.origin);
   setupJourneyInputListeners(journeyDestinationInput, journeyDestinationResults, journeySearchState.destination);
 };
 
 const searchJourneyStops = async (query, resultsBox, controller) => {
   const trimmedQuery = query?.trim();
-  
+
   if (!trimmedQuery || trimmedQuery.length < 2) {
     resultsBox.classList.add('hidden');
     resultsBox.innerHTML = '';
     return;
   }
-  
+
   const url = `${API_BASE}/locations?query=${encodeURIComponent(trimmedQuery)}&results=8&stops=true&addresses=true&poi=true&language=en&pretty=false`;
   resultsBox.innerHTML = '<progress class="progress w-full"></progress>';
   resultsBox.classList.remove('hidden');
-  
+
   try {
-    const res = await fetch(url, { 
-      signal: controller.signal, 
-      headers: { accept: 'application/json' } 
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { accept: 'application/json' }
     });
-    
+
     if (!res.ok) throw new Error('Search failed');
-    
+
     const items = await res.json();
     renderJourneySearchResults(items, resultsBox);
   } catch (e) {
@@ -1403,14 +1405,14 @@ const handleJourneyLocationSelect = (location, isOrigin, input, resultsBox, fiel
   } else {
     state.journey.destination = location;
   }
-  
+
   resultsBox.classList.add('hidden');
   resultsBox.innerHTML = '';
   input.value = location.name;
   fieldState.prevValue = location.name;
   fieldState.suppressBlur = false;
   input.blur();
-  
+
   setTimeout(() => {
     if (document.activeElement === input) {
       nextFocusElement?.focus();
@@ -1423,20 +1425,20 @@ const renderJourneySearchResults = (locations, resultsBox) => {
     resultsBox.innerHTML = '<div class="p-3 text-sm opacity-70">No results</div>';
     return;
   }
-  
+
   resultsBox.innerHTML = '';
   const ul = document.createElement('ul');
   ul.className = 'menu bg-base-200 rounded-box';
-  
+
   const journeyOriginResults = $('#journey-origin-results');
   const journeyOriginInput = $('#journey-origin');
   const journeyDestinationInput = $('#journey-destination');
   const isOrigin = resultsBox === journeyOriginResults;
-  
+
   const currentInput = isOrigin ? journeyOriginInput : journeyDestinationInput;
   const fieldState = isOrigin ? journeySearchState.origin : journeySearchState.destination;
   const nextFocus = isOrigin ? journeyDestinationInput : $('#journey-search-btn');
-  
+
   locations.forEach(location => {
     const li = document.createElement('li');
     li.innerHTML = `
@@ -1444,14 +1446,14 @@ const renderJourneySearchResults = (locations, resultsBox) => {
         <span><span class="font-medium">${escapeHtml(location.name)}</span></span>
       </a>
     `;
-    
+
     li.addEventListener('click', () => {
       handleJourneyLocationSelect(location, isOrigin, currentInput, resultsBox, fieldState, nextFocus);
     });
-    
+
     ul.appendChild(li);
   });
-  
+
   resultsBox.appendChild(ul);
 };
 
@@ -1460,22 +1462,22 @@ const findNearbyForJourney = async () => {
     showToast('Geolocation not supported', 'warning');
     return;
   }
-  
+
   const journeyOriginResults = $('#journey-origin-results');
   if (!journeyOriginResults) return;
-  
+
   journeyOriginResults.classList.remove('hidden');
   journeyOriginResults.innerHTML = '<div class="p-3">Locating… <progress class="progress w-24 ml-2"></progress></div>';
-  
+
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
       try {
         const { latitude, longitude } = pos.coords;
         const url = `${API_BASE}/locations/nearby?latitude=${latitude}&longitude=${longitude}&results=8&stops=true&poi=false&language=en&pretty=false`;
         const res = await fetch(url, { headers: { accept: 'application/json' } });
-        
+
         if (!res.ok) throw new Error('Nearby search failed');
-        
+
         const items = await res.json();
         renderJourneySearchResults(items, journeyOriginResults);
       } catch (e) {
@@ -1502,16 +1504,16 @@ const searchJourneys = async () => {
     showToast('Please select both origin and destination', 'warning');
     return;
   }
-  
+
   setHidden($('#journey-empty'), true);
   setHidden($('#journey-error'), true);
   setHidden($('#journey-loading'), false);
   $('#journeys-list').innerHTML = '';
-  
+
   try {
     const fromId = state.journey.origin.id || `${state.journey.origin.latitude},${state.journey.origin.longitude}`;
     const toId = state.journey.destination.id || `${state.journey.destination.latitude},${state.journey.destination.longitude}`;
-    
+
     const params = new URLSearchParams({
       results: '5',
       stopovers: 'true',
@@ -1520,7 +1522,7 @@ const searchJourneys = async () => {
       pretty: 'false',
       scheduledDays: 'false'
     });
-    
+
     // Get departure time from time picker
     const timePicker = $('#journey-time-picker');
     if (timePicker && timePicker.value) {
@@ -1528,26 +1530,26 @@ const searchJourneys = async () => {
       // Time-of-day only: resolved against today, even if already past
       const departureDate = new Date();
       departureDate.setHours(hours, minutes, 0, 0);
-      
+
       params.append('departure', departureDate.toISOString());
     } else {
       params.append('departure', 'now');
     }
-    
+
     const url = `${API_BASE}/journeys?from=${encodeURIComponent(fromId)}&to=${encodeURIComponent(toId)}&${params.toString()}`;
     const data = await fetchJSON(url);
-    
+
     const journeys = data.journeys || [];
     state.journey.journeys = journeys;
-    
+
     setHidden($('#journey-loading'), true);
-    
+
     if (journeys.length === 0) {
       $('#journey-error-msg').textContent = 'No journeys found. Try different locations or times.';
       setHidden($('#journey-error'), false);
       return;
     }
-    
+
     renderJourneys(journeys);
   } catch (e) {
     console.error('Journey search failed:', e);
@@ -1560,7 +1562,7 @@ const searchJourneys = async () => {
 const renderJourneys = (journeys) => {
   const container = $('#journeys-list');
   container.innerHTML = '';
-  
+
   journeys.forEach((journey, index) => {
     const card = createJourneyCard(journey, index);
     container.appendChild(card);
@@ -1571,17 +1573,17 @@ const createJourneyCard = (journey, index) => {
   const card = document.createElement('div');
   card.className = 'journey-card collapsed card bg-base-100 shadow-elevated';
   card.dataset.index = index;
-  
+
   const firstLeg = journey.legs[0];
   const lastLeg = journey.legs[journey.legs.length - 1];
-  
+
   const departureTime = firstLeg?.departure || firstLeg?.plannedDeparture;
   const arrivalTime = lastLeg?.arrival || lastLeg?.plannedArrival;
-  
+
   // Calculate departure delay
   const departureDelay = firstLeg?.departureDelay ?? computeDelaySecs(firstLeg?.departure, firstLeg?.plannedDeparture);
   const arrivalDelay = lastLeg?.arrivalDelay ?? computeDelaySecs(lastLeg?.arrival, lastLeg?.plannedArrival);
-  
+
   const duration = Math.round((new Date(arrivalTime) - new Date(departureTime)) / 60000);
   const hours = Math.floor(duration / 60);
   const minutes = duration % 60;
@@ -1589,7 +1591,7 @@ const createJourneyCard = (journey, index) => {
 
   const transitLegs = journey.legs.filter(leg => leg.mode !== 'walking' && leg.line);
   const transfers = Math.max(0, transitLegs.length - 1);
-  
+
   const lineBadges = journey.legs
     .filter(leg => leg.line)
     .map((leg, idx, arr) => {
@@ -1600,7 +1602,7 @@ const createJourneyCard = (journey, index) => {
       return badge + arrow;
     })
     .join('');
-  
+
   card.innerHTML = `
     <div class="card-body p-4 sm:p-5">
       <div class="flex items-center justify-between gap-3 mb-4">
@@ -1653,10 +1655,10 @@ const createJourneyCard = (journey, index) => {
       </div>
     </div>
   `;
-  
+
   card.querySelector('.journey-expand-btn').addEventListener('click', (e) => {
     e.stopPropagation();
-    
+
     // Close all other expanded journey cards
     const allCards = document.querySelectorAll('.journey-card');
     allCards.forEach(otherCard => {
@@ -1665,7 +1667,7 @@ const createJourneyCard = (journey, index) => {
         otherCard.classList.add('collapsed');
       }
     });
-    
+
     // Toggle current card
     const wasCollapsed = card.classList.contains('collapsed');
     card.classList.toggle('collapsed');
@@ -1677,35 +1679,35 @@ const createJourneyCard = (journey, index) => {
       }, 300);
     }
   });
-  
+
   return card;
 };
 
 const renderJourneyLegs = (legs) => {
   return `<div class="mt-5 pt-5 border-t border-base-300">
     ${legs.map((leg, index) => {
-      const isWalking = leg.mode === 'walking' || !leg.line;
-      const departureTime = leg.departure || leg.plannedDeparture;
-      const arrivalTime = leg.arrival || leg.plannedArrival;
-      const isLastLeg = index === legs.length - 1;
-      
-      if (isWalking) {
-        const prevLeg = index > 0 ? legs[index - 1] : null;
-        const nextLeg = index < legs.length - 1 ? legs[index + 1] : null;
-        const isTransfer = (prevLeg && (prevLeg.mode !== 'walking' && prevLeg.line)) && 
-                          (nextLeg && (nextLeg.mode !== 'walking' && nextLeg.line));
-        
-        if (isTransfer) {
-          // Calculate transfer time from previous leg's arrival to next leg's departure
-          let duration = 0;
-          const prevArrival = prevLeg.arrival || prevLeg.plannedArrival;
-          const nextDeparture = nextLeg.departure || nextLeg.plannedDeparture;
-          
-          if (prevArrival && nextDeparture) {
-            duration = Math.round((new Date(nextDeparture) - new Date(prevArrival)) / 60000);
-          }
+    const isWalking = leg.mode === 'walking' || !leg.line;
+    const departureTime = leg.departure || leg.plannedDeparture;
+    const arrivalTime = leg.arrival || leg.plannedArrival;
+    const isLastLeg = index === legs.length - 1;
 
-          return `
+    if (isWalking) {
+      const prevLeg = index > 0 ? legs[index - 1] : null;
+      const nextLeg = index < legs.length - 1 ? legs[index + 1] : null;
+      const isTransfer = (prevLeg && (prevLeg.mode !== 'walking' && prevLeg.line)) &&
+        (nextLeg && (nextLeg.mode !== 'walking' && nextLeg.line));
+
+      if (isTransfer) {
+        // Calculate transfer time from previous leg's arrival to next leg's departure
+        let duration = 0;
+        const prevArrival = prevLeg.arrival || prevLeg.plannedArrival;
+        const nextDeparture = nextLeg.departure || nextLeg.plannedDeparture;
+
+        if (prevArrival && nextDeparture) {
+          duration = Math.round((new Date(nextDeparture) - new Date(prevArrival)) / 60000);
+        }
+
+        return `
             <div class="flex items-center gap-3 pb-2 ${!isLastLeg ? 'mb-4 pb-4 border-b border-base-200' : ''}">
               <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
                 <div class="w-0.5 h-6 bg-base-300"></div>
@@ -1720,16 +1722,16 @@ const renderJourneyLegs = (legs) => {
               </div>
             </div>
           `;
-        }
+      }
 
-        let duration = 0;
-        if (departureTime && arrivalTime) {
-          const depTime = new Date(departureTime);
-          const arrTime = new Date(arrivalTime);
-          duration = Math.round((arrTime - depTime) / 60000);
-        }
+      let duration = 0;
+      if (departureTime && arrivalTime) {
+        const depTime = new Date(departureTime);
+        const arrTime = new Date(arrivalTime);
+        duration = Math.round((arrTime - depTime) / 60000);
+      }
 
-        return `
+      return `
           <div class="flex gap-3 pb-5 ${!isLastLeg ? 'mb-4 border-b border-base-200' : ''}">
             <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
               <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm bg-neutral-400 dark:bg-base-600"></div>
@@ -1758,21 +1760,21 @@ const renderJourneyLegs = (legs) => {
             </div>
           </div>
         `;
-      }
-      
-      const lineName = leg.line?.name || leg.line?.id || '?';
-      const badgeClass = productBadgeClass(leg.line);
-      const direction = leg.direction || leg.destination?.name || '—';
-      const lineColor = extractLineColor(badgeClass);
-      // Calculate delays
-      const departureDelay = leg.departureDelay ?? computeDelaySecs(leg.departure, leg.plannedDeparture);
-      const arrivalDelay = leg.arrivalDelay ?? computeDelaySecs(leg.arrival, leg.plannedArrival);
-      
-      // Calculate number of stops (excluding destination)
-      const stopCount = leg.stopovers ? Math.max(0, leg.stopovers.length - 1) : null;
-      const stopText = stopCount !== null && stopCount > 0 ? `${stopCount} stop${stopCount > 1 ? 's' : ''}` : '';
-      
-      return `
+    }
+
+    const lineName = leg.line?.name || leg.line?.id || '?';
+    const badgeClass = productBadgeClass(leg.line);
+    const direction = leg.direction || leg.destination?.name || '—';
+    const lineColor = extractLineColor(badgeClass);
+    // Calculate delays
+    const departureDelay = leg.departureDelay ?? computeDelaySecs(leg.departure, leg.plannedDeparture);
+    const arrivalDelay = leg.arrivalDelay ?? computeDelaySecs(leg.arrival, leg.plannedArrival);
+
+    // Calculate number of stops (excluding destination)
+    const stopCount = leg.stopovers ? Math.max(0, leg.stopovers.length - 1) : null;
+    const stopText = stopCount !== null && stopCount > 0 ? `${stopCount} stop${stopCount > 1 ? 's' : ''}` : '';
+
+    return `
         <div class="flex gap-3 pb-5 ${!isLastLeg ? 'mb-4 border-b border-base-200' : ''}">
           <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
             <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: ${lineColor};"></div>
@@ -1813,7 +1815,7 @@ const renderJourneyLegs = (legs) => {
           </div>
         </div>
       `;
-    }).join('')}
+  }).join('')}
   </div>`;
 };
 
@@ -1879,7 +1881,7 @@ const getStoredJSON = (key, fallback = null) => {
 const setActiveTab = (containerSelector, tabSelector) => {
   const container = $(containerSelector);
   if (!container) return;
-  
+
   $$(containerSelector + ' .tab').forEach(el => el.classList.remove('tab-active'));
   const tab = $(tabSelector);
   if (tab) tab.classList.add('tab-active');
@@ -1889,7 +1891,7 @@ const syncThemeToggles = () => {
   const headerToggle = $('#theme-toggle');
   const settingsToggle = $('#settings-theme-toggle');
   const themeLabel = $('#theme-label');
-  
+
   if (headerToggle && settingsToggle) {
     settingsToggle.checked = headerToggle.checked;
     if (themeLabel) {
@@ -1913,7 +1915,7 @@ const TAB_INDICATOR_DELAY = 50;
       localStorage.setItem('journeyDestination', JSON.stringify(state.journey.destination));
     }
   };
-  
+
   Object.defineProperty(state.journey, 'origin', {
     get() { return this._origin; },
     set(value) {
@@ -1921,7 +1923,7 @@ const TAB_INDICATOR_DELAY = 50;
       saveJourneyLocations();
     }
   });
-  
+
   Object.defineProperty(state.journey, 'destination', {
     get() { return this._destination; },
     set(value) {
@@ -1929,18 +1931,18 @@ const TAB_INDICATOR_DELAY = 50;
       saveJourneyLocations();
     }
   });
-  
+
   // Setup journey search listeners
   setupJourneySearchListeners();
-  
+
   // Restore view preference
   const savedView = localStorage.getItem('currentView') || 'journey';
   switchView(savedView);
-  
+
   // Restore duration tab
   const savedDuration = localStorage.getItem('selectedDuration') || '30';
   setActiveTab('#duration-tabs', `#duration-tabs .tab[data-minutes="${savedDuration}"]`);
-  
+
   // Restore departure stop
   const savedStop = getStoredJSON('selectedStop');
   if (savedStop) {
@@ -1948,35 +1950,35 @@ const TAB_INDICATOR_DELAY = 50;
     const searchInput = $('#search');
     if (searchInput) searchInput.value = savedStop.name;
   }
-  
+
   // Restore journey locations
   const savedOrigin = getStoredJSON('journeyOrigin');
   const savedDestination = getStoredJSON('journeyDestination');
   const journeyOriginInput = $('#journey-origin');
   const journeyDestinationInput = $('#journey-destination');
-  
+
   if (savedOrigin && journeyOriginInput) {
     state.journey.origin = savedOrigin;
     journeyOriginInput.value = savedOrigin.name;
     journeySearchState.origin.prevValue = savedOrigin.name;
   }
-  
+
   if (savedDestination && journeyDestinationInput) {
     state.journey.destination = savedDestination;
     journeyDestinationInput.value = savedDestination.name;
     journeySearchState.destination.prevValue = savedDestination.name;
   }
-  
+
   // Initialize theme
   initTheme();
-  
+
   // Sync and setup theme toggles
   syncThemeToggles();
   $('#theme-toggle')?.addEventListener('change', syncThemeToggles);
-  
+
   // Start auto-refresh for departures
   startFixedRefresh();
-  
+
   // Initialize tab indicator position
   setTimeout(() => requestAnimationFrame(updateTabIndicator), TAB_INDICATOR_DELAY);
 })();
