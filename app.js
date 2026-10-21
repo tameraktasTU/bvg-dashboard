@@ -20,26 +20,26 @@ const DEPARTURE_GRACE_SECONDS = 30; // Keep just-departed rows briefly while boa
 // "constructor" or "toString" would resolve to an inherited Object member
 // instead of missing. Use null-prototype maps so lookups only hit own keys.
 const U_BAHN_COLORS = Object.assign(Object.create(null), {
-  U1: { bg: '#57A639', text: 'white' },  // Yellow Green
-  U2: { bg: '#C63927', text: 'white' },  // Vermillion
-  U3: { bg: '#00694C', text: 'white' },  // Turquoise Green
-  U4: { bg: '#F9A800', text: 'black' },  // Traffic Yellow
-  U5: { bg: '#6F4A28', text: 'white' },  // Fawn Brown
-  U6: { bg: '#6C4675', text: 'white' },  // Blue Lilac
-  U7: { bg: '#0080AB', text: 'white' },  // Light Blue
-  U8: { bg: '#004F7C', text: 'white' },  // Gentian Blue
-  U9: { bg: '#FA842B', text: 'white' },  // Pastel Orange
+    U1: { bg: '#57A639', text: 'white' },  // Yellow Green
+    U2: { bg: '#C63927', text: 'white' },  // Vermillion
+    U3: { bg: '#00694C', text: 'white' },  // Turquoise Green
+    U4: { bg: '#F9A800', text: 'black' },  // Traffic Yellow
+    U5: { bg: '#6F4A28', text: 'white' },  // Fawn Brown
+    U6: { bg: '#6C4675', text: 'white' },  // Blue Lilac
+    U7: { bg: '#0080AB', text: 'white' },  // Light Blue
+    U8: { bg: '#004F7C', text: 'white' },  // Gentian Blue
+    U9: { bg: '#FA842B', text: 'white' },  // Pastel Orange
 });
 
 // Transport type color mapping
 const PRODUCT_COLORS = Object.assign(Object.create(null), {
-  subway: 'badge-primary',
-  suburban: 'bg-[#006E34] text-white',   // S-Bahn green
-  tram: 'bg-[#CC0000] text-white',       // Tram red
-  bus: 'bg-[#A3007C] text-white',        // Bus purple
-  ferry: 'bg-[#009EE0] text-white',      // Ferry blue
-  regional: 'bg-[#D50000] text-white',   // DB Regional red
-  express: 'bg-[#EC0016] text-white',    // DB Express red
+    subway: 'badge-primary',
+    suburban: 'bg-[#006E34] text-white',   // S-Bahn green
+    tram: 'bg-[#CC0000] text-white',       // Tram red
+    bus: 'bg-[#A3007C] text-white',        // Bus purple
+    ferry: 'bg-[#009EE0] text-white',      // Ferry blue
+    regional: 'bg-[#D50000] text-white',   // DB Regional red
+    express: 'bg-[#EC0016] text-white',    // DB Express red
 });
 
 // ============================================================================
@@ -47,16 +47,16 @@ const PRODUCT_COLORS = Object.assign(Object.create(null), {
 // ============================================================================
 
 const state = {
-  stop: null,
-  refreshTimerId: null,
-  lastRefreshTime: null,
-  allDepartures: [], // Cached 60-minute departure data
-  currentView: 'journey', // 'departures', 'journey', 'settings'
-  journey: {
-    origin: null,
-    destination: null,
-    journeys: [],
-  }
+    stop: null,
+    refreshTimerId: null,
+    lastRefreshTime: null,
+    allDepartures: [], // Cached 60-minute departure data
+    currentView: 'journey', // 'departures', 'journey', 'settings'
+    journey: {
+        origin: null,
+        destination: null,
+        journeys: [],
+    }
 };
 
 // ============================================================================
@@ -65,31 +65,31 @@ const state = {
 
 // API-supplied strings are interpolated into innerHTML below, so escape them
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;'
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
 }[char]));
 
 const fmtTime = (iso) => {
-  if (!iso) return '—';
-  // new Date('garbage') doesn't throw, it yields an Invalid Date, so validate
-  // the timestamp instead of relying on try/catch
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+    if (!iso) return '—';
+    // new Date('garbage') doesn't throw, it yields an Invalid Date, so validate
+    // the timestamp instead of relying on try/catch
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 };
 
 const computeDelaySecs = (when, plannedWhen) => {
-  if (!when || !plannedWhen) return null;
-  const actualTime = new Date(when).getTime();
-  const plannedTime = new Date(plannedWhen).getTime();
-  if (isNaN(actualTime) || isNaN(plannedTime)) return null;
-  return Math.round((actualTime - plannedTime) / 1000);
+    if (!when || !plannedWhen) return null;
+    const actualTime = new Date(when).getTime();
+    const plannedTime = new Date(plannedWhen).getTime();
+    if (isNaN(actualTime) || isNaN(plannedTime)) return null;
+    return Math.round((actualTime - plannedTime) / 1000);
 };
 
 // ============================================================================
@@ -97,15 +97,15 @@ const computeDelaySecs = (when, plannedWhen) => {
 // ============================================================================
 
 const showToast = (msg, type = 'error') => {
-  const toast = document.createElement('div');
-  toast.className = `alert alert-${type}`;
-  toast.innerHTML = `<span>${msg}</span>`;
-  $('#toast').appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type}`;
+    toast.innerHTML = `<span>${msg}</span>`;
+    $('#toast').appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
 };
 
 const setLastUpdate = () => {
-  $('#last-update').textContent = new Date().toLocaleTimeString();
+    $('#last-update').textContent = new Date().toLocaleTimeString();
 };
 
 // ============================================================================
@@ -113,22 +113,22 @@ const setLastUpdate = () => {
 // ============================================================================
 
 const productBadgeClass = (line) => {
-  const product = line?.product;
-  const tag = String(line?.name || line?.id || '');
+    const product = line?.product;
+    const tag = String(line?.name || line?.id || '');
 
-  // Handle U-Bahn lines with specific colors
-  if (product === 'subway') {
-    const match = /U\s?([1-9])\b/i.exec(tag);
-    if (match) {
-      const lineKey = `U${match[1]}`;
-      const colors = U_BAHN_COLORS[lineKey];
-      if (colors) {
-        return `bg-[${colors.bg}] text-${colors.text}`;
-      }
+    // Handle U-Bahn lines with specific colors
+    if (product === 'subway') {
+        const match = /U\s?([1-9])\b/i.exec(tag);
+        if (match) {
+            const lineKey = `U${match[1]}`;
+            const colors = U_BAHN_COLORS[lineKey];
+            if (colors) {
+                return `bg-[${colors.bg}] text-${colors.text}`;
+            }
+        }
     }
-  }
 
-  return PRODUCT_COLORS[product] || 'badge-ghost';
+    return PRODUCT_COLORS[product] || 'badge-ghost';
 };
 
 // Extract color from badge class for timeline visualization.
@@ -136,13 +136,13 @@ const productBadgeClass = (line) => {
 // re-added: without it the value is not a valid CSS color and every element
 // styled with it resolves to transparent, hiding the upcoming-stop markers.
 const extractLineColor = (badgeClass) => {
-  // Tolerate a non-string here: the class feeds .match() and .includes(),
-  // and a stray value would otherwise throw mid-render
-  if (typeof badgeClass !== 'string') return '#0080AB';
-  const colorMatch = badgeClass.match(/bg-\[#(\w+)\]/);
-  if (colorMatch) return `#${colorMatch[1]}`;
-  if (badgeClass.includes('badge-primary')) return '#0080AB';
-  return '#0080AB'; // Default fallback
+    // Tolerate a non-string here: the class feeds .match() and .includes(),
+    // and a stray value would otherwise throw mid-render
+    if (typeof badgeClass !== 'string') return '#0080AB';
+    const colorMatch = badgeClass.match(/bg-\[#(\w+)\]/);
+    if (colorMatch) return `#${colorMatch[1]}`;
+    if (badgeClass.includes('badge-primary')) return '#0080AB';
+    return '#0080AB'; // Default fallback
 };
 
 // ============================================================================
@@ -150,11 +150,11 @@ const extractLineColor = (badgeClass) => {
 // ============================================================================
 
 const fetchJSON = async (url) => {
-  const res = await fetch(url, { headers: { accept: 'application/json' } });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  const data = await res.json();
-  if (data?.error) throw new Error(data.error);
-  return data;
+    const res = await fetch(url, { headers: { accept: 'application/json' } });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const data = await res.json();
+    if (data?.error) throw new Error(data.error);
+    return data;
 };
 
 // ============================================================================
@@ -168,87 +168,87 @@ let suppressBlur = false;
 let searchAbort = null;
 
 const debounce = (fn, ms = 300) => {
-  let timer = null;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), ms);
-  };
+    let timer = null;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), ms);
+    };
 };
 
 const searchStops = async (query) => {
-  const trimmedQuery = query?.trim();
+    const trimmedQuery = query?.trim();
 
-  if (!trimmedQuery || trimmedQuery.length < 2) {
-    resultsBox.classList.add('hidden');
-    resultsBox.innerHTML = '';
-    return;
-  }
+    if (!trimmedQuery || trimmedQuery.length < 2) {
+        resultsBox.classList.add('hidden');
+        resultsBox.innerHTML = '';
+        return;
+    }
 
-  if (searchAbort) searchAbort.abort();
-  const controller = new AbortController();
-  searchAbort = controller;
+    if (searchAbort) searchAbort.abort();
+    const controller = new AbortController();
+    searchAbort = controller;
 
-  const url = `${API_BASE}/locations?query=${encodeURIComponent(trimmedQuery)}&results=8&stops=true&addresses=false&poi=false&language=en&pretty=false`;
-  resultsBox.innerHTML = '<progress class="progress w-full"></progress>';
-  resultsBox.classList.remove('hidden');
+    const url = `${API_BASE}/locations?query=${encodeURIComponent(trimmedQuery)}&results=8&stops=true&addresses=false&poi=false&language=en&pretty=false`;
+    resultsBox.innerHTML = '<progress class="progress w-full"></progress>';
+    resultsBox.classList.remove('hidden');
 
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { accept: 'application/json' }
-    });
+    try {
+        const res = await fetch(url, {
+            signal: controller.signal,
+            headers: { accept: 'application/json' }
+        });
 
-    if (!res.ok) throw new Error('Search failed');
+        if (!res.ok) throw new Error('Search failed');
 
-    const items = await res.json();
-    const stops = items.filter(x => x.type === 'stop');
-    renderSearchResults(stops);
-  } catch (e) {
-    if (controller.signal.aborted) return;
-    resultsBox.innerHTML = '';
-    resultsBox.classList.add('hidden');
-    showToast('Search error. Try again.', 'error');
-  }
+        const items = await res.json();
+        const stops = items.filter(x => x.type === 'stop');
+        renderSearchResults(stops);
+    } catch (e) {
+        if (controller.signal.aborted) return;
+        resultsBox.innerHTML = '';
+        resultsBox.classList.add('hidden');
+        showToast('Search error. Try again.', 'error');
+    }
 };
 
 const renderSearchResults = (stops) => {
-  if (!stops.length) {
-    resultsBox.innerHTML = '<div class="p-3 text-sm opacity-70">No results</div>';
-    return;
-  }
+    if (!stops.length) {
+        resultsBox.innerHTML = '<div class="p-3 text-sm opacity-70">No results</div>';
+        return;
+    }
 
-  resultsBox.innerHTML = '';
-  const ul = document.createElement('ul');
-  ul.className = 'menu bg-base-200 rounded-box';
+    resultsBox.innerHTML = '';
+    const ul = document.createElement('ul');
+    ul.className = 'menu bg-base-200 rounded-box';
 
-  stops.forEach(stop => {
-    const li = document.createElement('li');
-    li.innerHTML = `
+    stops.forEach(stop => {
+        const li = document.createElement('li');
+        li.innerHTML = `
       <a class="justify-between">
         <span><span class="font-medium">${escapeHtml(stop.name)}</span></span>
       </a>
     `;
 
-    li.addEventListener('click', () => {
-      selectStop(stop);
-      resultsBox.classList.add('hidden');
-      resultsBox.innerHTML = '';
-      searchInput.value = stop.name;
-      searchPrevValue = stop.name;
-      suppressBlur = false;
-      searchInput.blur();
+        li.addEventListener('click', () => {
+            selectStop(stop);
+            resultsBox.classList.add('hidden');
+            resultsBox.innerHTML = '';
+            searchInput.value = stop.name;
+            searchPrevValue = stop.name;
+            suppressBlur = false;
+            searchInput.blur();
 
-      setTimeout(() => {
-        if (document.activeElement === searchInput) {
-          $('#refresh-now')?.focus();
-        }
-      }, 0);
+            setTimeout(() => {
+                if (document.activeElement === searchInput) {
+                    $('#refresh-now')?.focus();
+                }
+            }, 0);
+        });
+
+        ul.appendChild(li);
     });
 
-    ul.appendChild(li);
-  });
-
-  resultsBox.appendChild(ul);
+    resultsBox.appendChild(ul);
 };
 
 // ============================================================================
@@ -256,39 +256,39 @@ const renderSearchResults = (stops) => {
 // ============================================================================
 
 const findNearbyStops = async () => {
-  if (!('geolocation' in navigator)) {
-    showToast('Geolocation not supported', 'warning');
-    return;
-  }
+    if (!('geolocation' in navigator)) {
+        showToast('Geolocation not supported', 'warning');
+        return;
+    }
 
-  resultsBox.classList.remove('hidden');
-  resultsBox.innerHTML = '<div class="p-3">Locating… <progress class="progress w-24 ml-2"></progress></div>';
+    resultsBox.classList.remove('hidden');
+    resultsBox.innerHTML = '<div class="p-3">Locating… <progress class="progress w-24 ml-2"></progress></div>';
 
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      try {
-        const { latitude, longitude } = pos.coords;
-        const url = `${API_BASE}/locations/nearby?latitude=${latitude}&longitude=${longitude}&results=8&stops=true&poi=false&language=en&pretty=false`;
-        const res = await fetch(url, { headers: { accept: 'application/json' } });
+    navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+            try {
+                const { latitude, longitude } = pos.coords;
+                const url = `${API_BASE}/locations/nearby?latitude=${latitude}&longitude=${longitude}&results=8&stops=true&poi=false&language=en&pretty=false`;
+                const res = await fetch(url, { headers: { accept: 'application/json' } });
 
-        if (!res.ok) throw new Error('Nearby search failed');
+                if (!res.ok) throw new Error('Nearby search failed');
 
-        const items = await res.json();
-        const stops = items.filter(x => x.type === 'stop');
-        renderSearchResults(stops);
-      } catch (e) {
-        showToast('Failed to fetch nearby stops', 'error');
-        resultsBox.classList.add('hidden');
-        resultsBox.innerHTML = '';
-      }
-    },
-    () => {
-      showToast('Location permission denied', 'warning');
-      resultsBox.classList.add('hidden');
-      resultsBox.innerHTML = '';
-    },
-    { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
-  );
+                const items = await res.json();
+                const stops = items.filter(x => x.type === 'stop');
+                renderSearchResults(stops);
+            } catch (e) {
+                showToast('Failed to fetch nearby stops', 'error');
+                resultsBox.classList.add('hidden');
+                resultsBox.innerHTML = '';
+            }
+        },
+        () => {
+            showToast('Location permission denied', 'warning');
+            resultsBox.classList.add('hidden');
+            resultsBox.innerHTML = '';
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+    );
 };
 
 // ============================================================================
@@ -298,30 +298,30 @@ const findNearbyStops = async () => {
 searchInput.addEventListener('input', debounce(() => searchStops(searchInput.value), SEARCH_DEBOUNCE_MS));
 
 searchInput.addEventListener('focus', () => {
-  searchPrevValue = searchInput.value;
-  searchInput.value = '';
+    searchPrevValue = searchInput.value;
+    searchInput.value = '';
 });
 
 searchInput.addEventListener('blur', () => {
-  if (suppressBlur) return;
-  if (!searchInput.value.trim()) {
-    searchInput.value = searchPrevValue;
-  }
-  resultsBox.classList.add('hidden');
+    if (suppressBlur) return;
+    if (!searchInput.value.trim()) {
+        searchInput.value = searchPrevValue;
+    }
+    resultsBox.classList.add('hidden');
 });
 
 searchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    e.stopPropagation();
-    searchInput.value = searchPrevValue;
-    resultsBox.classList.add('hidden');
-    searchInput.blur();
-  }
+    if (e.key === 'Escape') {
+        e.stopPropagation();
+        searchInput.value = searchPrevValue;
+        resultsBox.classList.add('hidden');
+        searchInput.blur();
+    }
 });
 
 resultsBox.addEventListener('mousedown', () => { suppressBlur = true; });
 resultsBox.addEventListener('mouseup', () => {
-  setTimeout(() => { suppressBlur = false; }, 0);
+    setTimeout(() => { suppressBlur = false; }, 0);
 });
 
 // ============================================================================
@@ -329,12 +329,12 @@ resultsBox.addEventListener('mouseup', () => {
 // ============================================================================
 
 const selectStop = (stop) => {
-  state.stop = stop;
-  state.allDepartures = [];
+    state.stop = stop;
+    state.allDepartures = [];
 
-  const badge = $('#departures-stop');
-  if (badge) {
-    badge.innerHTML = `
+    const badge = $('#departures-stop');
+    if (badge) {
+        badge.innerHTML = `
       <span class="inline-flex items-center gap-2 min-w-0">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 opacity-70">
           <path d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7Z"/>
@@ -343,16 +343,16 @@ const selectStop = (stop) => {
         <span class="truncate block max-w-[60vw] md:max-w-none">${escapeHtml(stop.name)}</span>
       </span>
     `;
-    badge.classList.remove('hidden');
-  }
+        badge.classList.remove('hidden');
+    }
 
-  localStorage.setItem('selectedStop', JSON.stringify({
-    id: stop.id,
-    name: stop.name,
-    location: stop.location
-  }));
+    localStorage.setItem('selectedStop', JSON.stringify({
+        id: stop.id,
+        name: stop.name,
+        location: stop.location
+    }));
 
-  refreshAll();
+    refreshAll();
 };
 
 // ============================================================================
@@ -360,78 +360,78 @@ const selectStop = (stop) => {
 // ============================================================================
 
 const loadDepartures = async (stopId, duration, forceRefresh = false) => {
-  setHidden($('#departures-loading'), false);
-  setHidden($('#departures-empty'), true);
+    setHidden($('#departures-loading'), false);
+    setHidden($('#departures-empty'), true);
 
-  // Fetch fresh data if forced or cache is empty
-  if (forceRefresh || state.allDepartures.length === 0) {
-    const url = `${API_BASE}/stops/${encodeURIComponent(stopId)}/departures?duration=${CACHE_DURATION_MINUTES}&remarks=true&language=en&pretty=false`;
+    // Fetch fresh data if forced or cache is empty
+    if (forceRefresh || state.allDepartures.length === 0) {
+        const url = `${API_BASE}/stops/${encodeURIComponent(stopId)}/departures?duration=${CACHE_DURATION_MINUTES}&remarks=true&language=en&pretty=false`;
 
-    try {
-      const list = await fetchJSON(url);
-      const items = Array.isArray(list) ? list : (list?.departures || list?.results || []);
+        try {
+            const list = await fetchJSON(url);
+            const items = Array.isArray(list) ? list : (list?.departures || list?.results || []);
 
-      items.sort((a, b) => {
-        const timeA = new Date(a.when || a.plannedWhen || 0).getTime();
-        const timeB = new Date(b.when || b.plannedWhen || 0).getTime();
-        return timeA - timeB;
-      });
+            items.sort((a, b) => {
+                const timeA = new Date(a.when || a.plannedWhen || 0).getTime();
+                const timeB = new Date(b.when || b.plannedWhen || 0).getTime();
+                return timeA - timeB;
+            });
 
-      state.allDepartures = items;
-    } catch (e) {
-      showToast('Failed to load departures', 'error');
-      setHidden($('#departures-loading'), true);
-      return;
+            state.allDepartures = items;
+        } catch (e) {
+            showToast('Failed to load departures', 'error');
+            setHidden($('#departures-loading'), true);
+            return;
+        }
     }
-  }
 
-  // Filter cached departures based on selected duration. The cache is refetched
-  // less often than it is rendered, so also drop rows that already departed.
-  const now = Date.now();
-  const minTime = now - DEPARTURE_GRACE_SECONDS * 1000;
-  const maxTime = now + (duration * 60 * 1000);
-  const filteredItems = state.allDepartures.filter(item => {
-    const departureTime = new Date(item.when || item.plannedWhen).getTime();
-    if (Number.isNaN(departureTime)) return false;
-    return departureTime >= minTime && departureTime <= maxTime;
-  });
+    // Filter cached departures based on selected duration. The cache is refetched
+    // less often than it is rendered, so also drop rows that already departed.
+    const now = Date.now();
+    const minTime = now - DEPARTURE_GRACE_SECONDS * 1000;
+    const maxTime = now + (duration * 60 * 1000);
+    const filteredItems = state.allDepartures.filter(item => {
+        const departureTime = new Date(item.when || item.plannedWhen).getTime();
+        if (Number.isNaN(departureTime)) return false;
+        return departureTime >= minTime && departureTime <= maxTime;
+    });
 
-  renderDepartures(filteredItems);
-  setHidden($('#departures-loading'), true);
+    renderDepartures(filteredItems);
+    setHidden($('#departures-loading'), true);
 };
 
 const renderDepartures = (items) => {
-  const tbody = $('#departures-body');
-  tbody.innerHTML = '';
-  $('#departures-count').textContent = items.length;
+    const tbody = $('#departures-body');
+    tbody.innerHTML = '';
+    $('#departures-count').textContent = items.length;
 
-  if (!items.length) {
-    setHidden($('#departures-empty'), false);
-    const msgEl = $('#departures-empty-msg');
-    if (msgEl) msgEl.textContent = 'No departures in this time window.';
-    return;
-  }
+    if (!items.length) {
+        setHidden($('#departures-empty'), false);
+        const msgEl = $('#departures-empty-msg');
+        if (msgEl) msgEl.textContent = 'No departures in this time window.';
+        return;
+    }
 
-  const fragment = document.createDocumentFragment();
+    const fragment = document.createDocumentFragment();
 
-  items.forEach(departure => {
-    const delay = departure.delay ?? computeDelaySecs(departure.when, departure.plannedWhen);
-    const hasDelayData = delay !== null;
-    const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
+    items.forEach(departure => {
+        const delay = departure.delay ?? computeDelaySecs(departure.when, departure.plannedWhen);
+        const hasDelayData = delay !== null;
+        const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
 
-    const plannedTimeDisplay = hasSignificantDelay
-      ? `<span class="line-through opacity-40">${fmtTime(departure.plannedWhen)}</span>`
-      : `<span>${fmtTime(departure.plannedWhen || departure.when)}</span>`;
+        const plannedTimeDisplay = hasSignificantDelay
+            ? `<span class="line-through opacity-40">${fmtTime(departure.plannedWhen)}</span>`
+            : `<span>${fmtTime(departure.plannedWhen || departure.when)}</span>`;
 
-    // Only colour the cell when a real delay is shown; otherwise the planned
-    // time is displayed and a red/green tint would be misleading
-    const actualTimeDisplay = hasSignificantDelay
-      ? `<span class="${delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success'} font-semibold">${fmtTime(departure.when)}</span>`
-      : `<span>${fmtTime(departure.plannedWhen || departure.when)}</span>`;
+        // Only colour the cell when a real delay is shown; otherwise the planned
+        // time is displayed and a red/green tint would be misleading
+        const actualTimeDisplay = hasSignificantDelay
+            ? `<span class="${delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success'} font-semibold">${fmtTime(departure.when)}</span>`
+            : `<span>${fmtTime(departure.plannedWhen || departure.when)}</span>`;
 
-    const tr = document.createElement('tr');
-    tr.className = 'cursor-pointer hover:bg-base-300 transition-colors';
-    tr.innerHTML = `
+        const tr = document.createElement('tr');
+        tr.className = 'cursor-pointer hover:bg-base-300 transition-colors';
+        tr.innerHTML = `
       <td class="font-mono px-2 md:px-3 py-2 md:py-3 text-[0.92rem] md:text-base">
         ${plannedTimeDisplay}
       </td>
@@ -450,11 +450,11 @@ const renderDepartures = (items) => {
       </td>
     `;
 
-    tr.addEventListener('click', () => showLineOverview(departure));
-    fragment.appendChild(tr);
-  });
+        tr.addEventListener('click', () => showLineOverview(departure));
+        fragment.appendChild(tr);
+    });
 
-  tbody.appendChild(fragment);
+    tbody.appendChild(fragment);
 };
 
 // ============================================================================
@@ -462,47 +462,47 @@ const renderDepartures = (items) => {
 // ============================================================================
 
 const fetchTripDetails = async (tripId) => {
-  const url = `${API_BASE}/trips/${encodeURIComponent(tripId)}?stopovers=true&remarks=true&language=en&pretty=false`;
-  return await fetchJSON(url);
+    const url = `${API_BASE}/trips/${encodeURIComponent(tripId)}?stopovers=true&remarks=true&language=en&pretty=false`;
+    return await fetchJSON(url);
 };
 
 const showLineOverview = async (departure) => {
-  const modal = $('#line-overview-modal');
-  const lineBadge = $('#modal-line-badge');
-  const lineDirection = $('#modal-line-direction');
-  const loading = $('#modal-loading');
-  const errorDiv = $('#modal-error');
-  const container = $('#stopovers-container');
+    const modal = $('#line-overview-modal');
+    const lineBadge = $('#modal-line-badge');
+    const lineDirection = $('#modal-line-direction');
+    const loading = $('#modal-loading');
+    const errorDiv = $('#modal-error');
+    const container = $('#stopovers-container');
 
-  // Set header info
-  lineBadge.className = `badge badge-lg ${productBadgeClass(departure.line)}`;
-  lineBadge.textContent = departure.line?.name || departure.line?.id || '?';
-  lineDirection.textContent = departure.direction || 'Unknown';
+    // Set header info
+    lineBadge.className = `badge badge-lg ${productBadgeClass(departure.line)}`;
+    lineBadge.textContent = departure.line?.name || departure.line?.id || '?';
+    lineDirection.textContent = departure.direction || 'Unknown';
 
-  // Show modal and loading state
-  modal.showModal();
-  setHidden(loading, false);
-  setHidden(errorDiv, true);
-  container.innerHTML = '';
+    // Show modal and loading state
+    modal.showModal();
+    setHidden(loading, false);
+    setHidden(errorDiv, true);
+    container.innerHTML = '';
 
-  try {
-    if (!departure.tripId) {
-      throw new Error('No trip ID available');
+    try {
+        if (!departure.tripId) {
+            throw new Error('No trip ID available');
+        }
+
+        const trip = await fetchTripDetails(departure.tripId);
+        const stopovers = trip?.stopovers || trip?.trip?.stopovers || [];
+
+        if (!stopovers.length) {
+            throw new Error('No stopovers found');
+        }
+
+        renderStopovers(stopovers, departure);
+    } catch (e) {
+        setHidden(errorDiv, false);
+    } finally {
+        setHidden(loading, true);
     }
-
-    const trip = await fetchTripDetails(departure.tripId);
-    const stopovers = trip?.stopovers || trip?.trip?.stopovers || [];
-
-    if (!stopovers.length) {
-      throw new Error('No stopovers found');
-    }
-
-    renderStopovers(stopovers, departure);
-  } catch (e) {
-    setHidden(errorDiv, false);
-  } finally {
-    setHidden(loading, true);
-  }
 };
 
 // ============================================================================
@@ -510,106 +510,106 @@ const showLineOverview = async (departure) => {
 // ============================================================================
 
 const findCurrentStopIndex = (stopovers, departure) => {
-  const currentStopId = state.stop?.id;
-  const currentStopName = state.stop?.name;
-  const departureStopId = departure.stop?.id;
-  const departureStopName = departure.stop?.name;
+    const currentStopId = state.stop?.id;
+    const currentStopName = state.stop?.name;
+    const departureStopId = departure.stop?.id;
+    const departureStopName = departure.stop?.name;
 
-  // Strat 1: Exact ID match with state.stop
-  if (currentStopId) {
-    const idx = stopovers.findIndex(s => s.stop?.id === currentStopId);
-    if (idx !== -1) return idx;
-  }
+    // Strat 1: Exact ID match with state.stop
+    if (currentStopId) {
+        const idx = stopovers.findIndex(s => s.stop?.id === currentStopId);
+        if (idx !== -1) return idx;
+    }
 
-  // Strat 2: Exact ID match with departure.stop
-  if (departureStopId) {
-    const idx = stopovers.findIndex(s => s.stop?.id === departureStopId);
-    if (idx !== -1) return idx;
-  }
+    // Strat 2: Exact ID match with departure.stop
+    if (departureStopId) {
+        const idx = stopovers.findIndex(s => s.stop?.id === departureStopId);
+        if (idx !== -1) return idx;
+    }
 
-  // Strat 3: Name matching with state.stop
-  if (currentStopName) {
-    const idx = stopovers.findIndex(s => {
-      const stopName = s.stop?.name?.toLowerCase() || '';
-      const current = currentStopName.toLowerCase();
-      return stopName.includes(current) || current.includes(stopName);
-    });
-    if (idx !== -1) return idx;
-  }
+    // Strat 3: Name matching with state.stop
+    if (currentStopName) {
+        const idx = stopovers.findIndex(s => {
+            const stopName = s.stop?.name?.toLowerCase() || '';
+            const current = currentStopName.toLowerCase();
+            return stopName.includes(current) || current.includes(stopName);
+        });
+        if (idx !== -1) return idx;
+    }
 
-  // Strat 4: Name matching with departure.stop
-  if (departureStopName) {
-    const idx = stopovers.findIndex(s => {
-      const stopName = s.stop?.name?.toLowerCase() || '';
-      const depName = departureStopName.toLowerCase();
-      return stopName.includes(depName) || depName.includes(stopName);
-    });
-    if (idx !== -1) return idx;
-  }
+    // Strat 4: Name matching with departure.stop
+    if (departureStopName) {
+        const idx = stopovers.findIndex(s => {
+            const stopName = s.stop?.name?.toLowerCase() || '';
+            const depName = departureStopName.toLowerCase();
+            return stopName.includes(depName) || depName.includes(stopName);
+        });
+        if (idx !== -1) return idx;
+    }
 
-  return -1;
+    return -1;
 };
 
 const renderStopovers = (stopovers, departure) => {
-  const container = $('#stopovers-container');
-  container.innerHTML = '';
+    const container = $('#stopovers-container');
+    container.innerHTML = '';
 
-  const currentIndex = findCurrentStopIndex(stopovers, departure);
-  const badgeClass = productBadgeClass(departure.line);
-  const lineColor = extractLineColor(badgeClass);
+    const currentIndex = findCurrentStopIndex(stopovers, departure);
+    const badgeClass = productBadgeClass(departure.line);
+    const lineColor = extractLineColor(badgeClass);
 
-  const timeline = document.createElement('div');
-  timeline.className = 'flex flex-col gap-0 pl-2';
+    const timeline = document.createElement('div');
+    timeline.className = 'flex flex-col gap-0 pl-2';
 
-  stopovers.forEach((stopover, idx) => {
-    const isPassed = currentIndex !== -1 && idx < currentIndex;
-    const isCurrent = idx === currentIndex;
+    stopovers.forEach((stopover, idx) => {
+        const isPassed = currentIndex !== -1 && idx < currentIndex;
+        const isCurrent = idx === currentIndex;
 
-    const stopDiv = document.createElement('div');
-    stopDiv.className = 'flex items-stretch gap-3 relative mb-2';
+        const stopDiv = document.createElement('div');
+        stopDiv.className = 'flex items-stretch gap-3 relative mb-2';
 
-    if (isCurrent) {
-      stopDiv.className += ' rounded-lg';
-      stopDiv.id = 'current-stop-item';
-    }
+        if (isCurrent) {
+            stopDiv.className += ' rounded-lg';
+            stopDiv.id = 'current-stop-item';
+        }
 
-    const indicatorColor = (isPassed || isCurrent) ? '#9ca3af' : lineColor;
-    const lineColorValue = isPassed ? '#9ca3af' : lineColor;
+        const indicatorColor = (isPassed || isCurrent) ? '#9ca3af' : lineColor;
+        const lineColorValue = isPassed ? '#9ca3af' : lineColor;
 
-    const timelineIndicator = document.createElement('div');
-    timelineIndicator.className = 'flex flex-col items-center flex-shrink-0 relative';
-    timelineIndicator.innerHTML = `
+        const timelineIndicator = document.createElement('div');
+        timelineIndicator.className = 'flex flex-col items-center flex-shrink-0 relative';
+        timelineIndicator.innerHTML = `
       ${idx > 0 ? `<div class="w-0.5 h-2 absolute top-0" style="background-color: ${indicatorColor};"></div>` : ''}
       <div class="w-3 h-3 rounded-full z-10 my-2 ${isCurrent ? 'ring-4 ring-primary/30' : ''}" style="background-color: ${isCurrent ? lineColor : indicatorColor};"></div>
       ${idx < stopovers.length - 1 ? `<div class="w-0.5 absolute top-2" style="height: calc(100% + 0.5rem); background-color: ${lineColorValue};"></div>` : ''}
     `;
 
-    const actualTime = stopover.departure || stopover.arrival;
-    const plannedTime = stopover.plannedDeparture || stopover.plannedArrival;
-    const platform = stopover.platform || stopover.plannedPlatform;
+        const actualTime = stopover.departure || stopover.arrival;
+        const plannedTime = stopover.plannedDeparture || stopover.plannedArrival;
+        const platform = stopover.platform || stopover.plannedPlatform;
 
-    const delay = stopover.departureDelay ?? stopover.arrivalDelay ??
-      computeDelaySecs(actualTime, plannedTime);
+        const delay = stopover.departureDelay ?? stopover.arrivalDelay ??
+            computeDelaySecs(actualTime, plannedTime);
 
-    const hasDelayData = delay !== null;
-    const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
+        const hasDelayData = delay !== null;
+        const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
 
-    let timeDisplay = '';
-    if (hasSignificantDelay) {
-      const delayColor = delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success';
-      timeDisplay = `
+        let timeDisplay = '';
+        if (hasSignificantDelay) {
+            const delayColor = delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success';
+            timeDisplay = `
         <span class="font-mono font-medium line-through opacity-40">${fmtTime(plannedTime)}</span>
         <span class="font-mono font-semibold ${delayColor}">${fmtTime(actualTime)}</span>
       `;
-    } else if (hasDelayData && delay === 0) {
-      timeDisplay = `<span class="font-mono font-semibold text-success">${fmtTime(actualTime || plannedTime)}</span>`;
-    } else {
-      timeDisplay = `<span class="font-mono font-medium">${fmtTime(actualTime || plannedTime) || '—'}</span>`;
-    }
+        } else if (hasDelayData && delay === 0) {
+            timeDisplay = `<span class="font-mono font-semibold text-success">${fmtTime(actualTime || plannedTime)}</span>`;
+        } else {
+            timeDisplay = `<span class="font-mono font-medium">${fmtTime(actualTime || plannedTime) || '—'}</span>`;
+        }
 
-    const infoDiv = document.createElement('div');
-    infoDiv.className = 'flex-1 min-w-0 flex items-center px-3';
-    infoDiv.innerHTML = `
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'flex-1 min-w-0 flex items-center px-3';
+        infoDiv.innerHTML = `
       <div class="flex items-center justify-between gap-2 flex-wrap flex-1">
         <div class="flex-1 min-w-0">
           <div class="font-medium truncate ${isCurrent ? 'font-bold' : isPassed ? 'opacity-40' : ''}">
@@ -624,20 +624,20 @@ const renderStopovers = (stopovers, departure) => {
       </div>
     `;
 
-    stopDiv.appendChild(timelineIndicator);
-    stopDiv.appendChild(infoDiv);
-    timeline.appendChild(stopDiv);
-  });
+        stopDiv.appendChild(timelineIndicator);
+        stopDiv.appendChild(infoDiv);
+        timeline.appendChild(stopDiv);
+    });
 
-  container.appendChild(timeline);
+    container.appendChild(timeline);
 
-  // Auto-scroll to current stop
-  setTimeout(() => {
-    const currentStopElement = $('#current-stop-item');
-    if (currentStopElement) {
-      currentStopElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, 100);
+    // Auto-scroll to current stop
+    setTimeout(() => {
+        const currentStopElement = $('#current-stop-item');
+        if (currentStopElement) {
+            currentStopElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 100);
 };
 
 // ============================================================================
@@ -645,25 +645,25 @@ const renderStopovers = (stopovers, departure) => {
 // ============================================================================
 
 const refreshAll = async () => {
-  if (!state.stop) {
-    $('#departures-body').innerHTML = '';
-    $('#departures-count').textContent = '0';
-    setHidden($('#departures-empty'), false);
-    const msgEl = $('#departures-empty-msg');
-    if (msgEl) msgEl.textContent = 'No stop/station selected.';
-    return;
-  }
+    if (!state.stop) {
+        $('#departures-body').innerHTML = '';
+        $('#departures-count').textContent = '0';
+        setHidden($('#departures-empty'), false);
+        const msgEl = $('#departures-empty-msg');
+        if (msgEl) msgEl.textContent = 'No stop/station selected.';
+        return;
+    }
 
-  const activeTab = $('#duration-tabs .tab.tab-active');
-  const duration = activeTab ? Number(activeTab.getAttribute('data-minutes')) : 30;
-  await loadDepartures(state.stop.id, duration, true);
-  setLastUpdate();
-  state.lastRefreshTime = Date.now();
+    const activeTab = $('#duration-tabs .tab.tab-active');
+    const duration = activeTab ? Number(activeTab.getAttribute('data-minutes')) : 30;
+    await loadDepartures(state.stop.id, duration, true);
+    setLastUpdate();
+    state.lastRefreshTime = Date.now();
 };
 
 const startFixedRefresh = () => {
-  if (state.refreshTimerId) clearInterval(state.refreshTimerId);
-  state.refreshTimerId = setInterval(refreshAll, REFRESH_INTERVAL_MS);
+    if (state.refreshTimerId) clearInterval(state.refreshTimerId);
+    state.refreshTimerId = setInterval(refreshAll, REFRESH_INTERVAL_MS);
 };
 
 // ============================================================================
@@ -671,33 +671,33 @@ const startFixedRefresh = () => {
 // ============================================================================
 
 const updateTabIndicator = () => {
-  const activeTab = $('#duration-tabs .tab.tab-active');
-  const container = $('#duration-tabs');
-  if (!activeTab || !container) return;
+    const activeTab = $('#duration-tabs .tab.tab-active');
+    const container = $('#duration-tabs');
+    if (!activeTab || !container) return;
 
-  const containerRect = container.getBoundingClientRect();
-  const tabRect = activeTab.getBoundingClientRect();
-  const left = tabRect.left - containerRect.left;
-  const width = tabRect.width;
+    const containerRect = container.getBoundingClientRect();
+    const tabRect = activeTab.getBoundingClientRect();
+    const left = tabRect.left - containerRect.left;
+    const width = tabRect.width;
 
-  container.style.setProperty('--indicator-left', `${left}px`);
-  container.style.setProperty('--indicator-width', `${width}px`);
+    container.style.setProperty('--indicator-left', `${left}px`);
+    container.style.setProperty('--indicator-width', `${width}px`);
 };
 
 $('#duration-tabs')?.addEventListener('click', async (e) => {
-  const tab = e.target.closest('.tab');
-  if (!tab) return;
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
 
-  $$('#duration-tabs .tab').forEach(el => el.classList.remove('tab-active'));
-  tab.classList.add('tab-active');
-  updateTabIndicator();
+    $$('#duration-tabs .tab').forEach(el => el.classList.remove('tab-active'));
+    tab.classList.add('tab-active');
+    updateTabIndicator();
 
-  const duration = tab.getAttribute('data-minutes');
-  localStorage.setItem('selectedDuration', duration);
+    const duration = tab.getAttribute('data-minutes');
+    localStorage.setItem('selectedDuration', duration);
 
-  if (state.stop) {
-    await loadDepartures(state.stop.id, Number(duration), false);
-  }
+    if (state.stop) {
+        await loadDepartures(state.stop.id, Number(duration), false);
+    }
 });
 
 // ============================================================================
@@ -705,23 +705,23 @@ $('#duration-tabs')?.addEventListener('click', async (e) => {
 // ============================================================================
 
 const initTheme = () => {
-  const themeToggle = $('#theme-toggle');
-  let theme = localStorage.getItem('theme');
+    const themeToggle = $('#theme-toggle');
+    let theme = localStorage.getItem('theme');
 
-  if (!theme) {
-    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
+    if (!theme) {
+        theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
 
-  document.documentElement.setAttribute('data-theme', theme);
-  themeToggle.checked = theme === 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.checked = theme === 'dark';
 
-  themeToggle.addEventListener('change', () => {
-    const newTheme = themeToggle.checked ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    // Swap the radar basemap so it matches the new theme immediately
-    if (typeof updateRadarTileLayer === 'function') updateRadarTileLayer();
-  });
+    themeToggle.addEventListener('change', () => {
+        const newTheme = themeToggle.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        // Swap the radar basemap so it matches the new theme immediately
+        if (typeof updateRadarTileLayer === 'function') updateRadarTileLayer();
+    });
 };
 
 // ============================================================================
@@ -729,17 +729,17 @@ const initTheme = () => {
 // ============================================================================
 
 const handleVisibilityChange = () => {
-  if (document.hidden) {
-    if (state.refreshTimerId) clearInterval(state.refreshTimerId);
-  } else {
-    const timeSinceLastRefresh = Date.now() - (state.lastRefreshTime || 0);
+    if (document.hidden) {
+        if (state.refreshTimerId) clearInterval(state.refreshTimerId);
+    } else {
+        const timeSinceLastRefresh = Date.now() - (state.lastRefreshTime || 0);
 
-    if (timeSinceLastRefresh >= REFRESH_INTERVAL_MS) {
-      refreshAll();
+        if (timeSinceLastRefresh >= REFRESH_INTERVAL_MS) {
+            refreshAll();
+        }
+
+        startFixedRefresh();
     }
-
-    startFixedRefresh();
-  }
 };
 
 // ============================================================================
@@ -747,79 +747,79 @@ const handleVisibilityChange = () => {
 // ============================================================================
 
 const radarState = {
-  map: null,
-  markers: [],
-  markersByTripId: new Map(),
-  stopMarker: null,
-  vehicles: [],
-  refreshTimerId: null,
-  tileLayer: null,
-  abort: null
+    map: null,
+    markers: [],
+    markersByTripId: new Map(),
+    stopMarker: null,
+    vehicles: [],
+    refreshTimerId: null,
+    tileLayer: null,
+    abort: null
 };
 
 const RADAR_CONFIG = {
-  DEFAULT_ZOOM: 14,
-  SEARCH_RADIUS: 0.09, // Fixed search radius (~10km)
-  MAX_RESULTS: 1024,
-  MAP_INIT_DELAY: 100,
-  REFRESH_INTERVAL: 10000
+    DEFAULT_ZOOM: 14,
+    SEARCH_RADIUS: 0.09, // Fixed search radius (~10km)
+    MAX_RESULTS: 1024,
+    MAP_INIT_DELAY: 100,
+    REFRESH_INTERVAL: 10000
 };
 
 // Extract hex colors from PRODUCT_COLORS for use in SVG markers
 const PRODUCT_HEX_COLORS = Object.assign(Object.create(null), {
-  subway: '#57A639',
-  suburban: '#006E34',
-  tram: '#CC0000',
-  bus: '#A3007C',
-  ferry: '#009EE0',
-  regional: '#D50000',
-  express: '#EC0016',
-  default: '#64748b'
+    subway: '#57A639',
+    suburban: '#006E34',
+    tram: '#CC0000',
+    bus: '#A3007C',
+    ferry: '#009EE0',
+    regional: '#D50000',
+    express: '#EC0016',
+    default: '#64748b'
 });
 
 const getVehicleColor = (product, lineName) => {
-  if (!product) return PRODUCT_HEX_COLORS.default;
+    if (!product) return PRODUCT_HEX_COLORS.default;
 
-  const productType = product.toLowerCase();
+    const productType = product.toLowerCase();
 
-  if (productType.includes('subway') || productType.includes('u-bahn')) {
-    if (lineName) {
-      const uBahnColor = U_BAHN_COLORS[lineName.toUpperCase()];
-      if (uBahnColor) return uBahnColor.bg;
+    if (productType.includes('subway') || productType.includes('u-bahn')) {
+        if (lineName) {
+            const uBahnColor = U_BAHN_COLORS[lineName.toUpperCase()];
+            if (uBahnColor) return uBahnColor.bg;
+        }
+        return PRODUCT_HEX_COLORS.subway;
     }
-    return PRODUCT_HEX_COLORS.subway;
-  }
 
-  if (productType.includes('suburban') || productType.includes('s-bahn')) return PRODUCT_HEX_COLORS.suburban;
-  if (productType.includes('tram') || productType.includes('strassenbahn')) return PRODUCT_HEX_COLORS.tram;
-  if (productType.includes('bus')) return PRODUCT_HEX_COLORS.bus;
-  if (productType.includes('ferry') || productType.includes('fähre')) return PRODUCT_HEX_COLORS.ferry;
-  if (productType.includes('regional')) return PRODUCT_HEX_COLORS.regional;
-  if (productType.includes('express')) return PRODUCT_HEX_COLORS.express;
+    if (productType.includes('suburban') || productType.includes('s-bahn')) return PRODUCT_HEX_COLORS.suburban;
+    if (productType.includes('tram') || productType.includes('strassenbahn')) return PRODUCT_HEX_COLORS.tram;
+    if (productType.includes('bus')) return PRODUCT_HEX_COLORS.bus;
+    if (productType.includes('ferry') || productType.includes('fähre')) return PRODUCT_HEX_COLORS.ferry;
+    if (productType.includes('regional')) return PRODUCT_HEX_COLORS.regional;
+    if (productType.includes('express')) return PRODUCT_HEX_COLORS.express;
 
-  return PRODUCT_HEX_COLORS.default;
+    return PRODUCT_HEX_COLORS.default;
 };
 
 const createVehicleIcon = (color, lineName) => {
-  const iconSize = 32;
-  const svg = `
+    const iconSize = 32;
+    const svg = `
     <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
       <circle cx="16" cy="16" r="14" fill="${escapeHtml(color)}" stroke="white" stroke-width="2"/>
       <text x="16" y="20" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="white">${escapeHtml(lineName)}</text>
     </svg>
   `;
 
-  return L.divIcon({
-    html: svg,
-    className: 'vehicle-marker',
-    iconSize: [iconSize, iconSize],
-    iconAnchor: [iconSize / 2, iconSize / 2]
-  });
+    return L.divIcon({
+        html: svg,
+        className: 'vehicle-marker',
+        iconSize: [iconSize, iconSize],
+        iconAnchor: [iconSize / 2, iconSize / 2]
+    });
 };
 
 const createStopIcon = () => {
-  const iconSize = 40;
-  const svg = `
+    const iconSize = 40;
+    const svg = `
     <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
       <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3">
         <animate attributeName="r" from="18" to="8" dur="1.5s" repeatCount="indefinite"/>
@@ -829,12 +829,12 @@ const createStopIcon = () => {
     </svg>
   `;
 
-  return L.divIcon({
-    html: svg,
-    className: 'stop-marker',
-    iconSize: [iconSize, iconSize],
-    iconAnchor: [iconSize / 2, iconSize / 2]
-  });
+    return L.divIcon({
+        html: svg,
+        className: 'stop-marker',
+        iconSize: [iconSize, iconSize],
+        iconAnchor: [iconSize / 2, iconSize / 2]
+    });
 };
 
 // ============================================================================
@@ -842,50 +842,50 @@ const createStopIcon = () => {
 // ============================================================================
 
 const getProductDisplayName = (product) => {
-  if (!product) return 'Vehicle';
+    if (!product) return 'Vehicle';
 
-  const productLower = product.toLowerCase();
+    const productLower = product.toLowerCase();
 
-  if (productLower.includes('subway') || productLower.includes('u-bahn')) return 'U-Bahn';
-  if (productLower.includes('suburban') || productLower.includes('s-bahn')) return 'S-Bahn';
-  if (productLower.includes('tram') || productLower.includes('strassenbahn')) return 'Tram';
-  if (productLower.includes('bus')) return 'Bus';
-  if (productLower.includes('ferry') || productLower.includes('fähre')) return 'Ferry';
-  if (productLower.includes('regional')) return 'Regional';
-  if (productLower.includes('express')) return 'Express';
+    if (productLower.includes('subway') || productLower.includes('u-bahn')) return 'U-Bahn';
+    if (productLower.includes('suburban') || productLower.includes('s-bahn')) return 'S-Bahn';
+    if (productLower.includes('tram') || productLower.includes('strassenbahn')) return 'Tram';
+    if (productLower.includes('bus')) return 'Bus';
+    if (productLower.includes('ferry') || productLower.includes('fähre')) return 'Ferry';
+    if (productLower.includes('regional')) return 'Regional';
+    if (productLower.includes('express')) return 'Express';
 
-  return product; // Return original if no match
+    return product; // Return original if no match
 };
 
 const getUpcomingStopover = (vehicle) => {
-  if (!vehicle.nextStopovers || vehicle.nextStopovers.length === 0) {
-    return null;
-  }
-
-  const now = Date.now();
-
-  for (const stopover of vehicle.nextStopovers) {
-    const departureTime = stopover.departure || stopover.plannedDeparture;
-
-    if (departureTime) {
-      const depTime = new Date(departureTime).getTime();
-      if (depTime > now) {
-        return stopover;
-      }
-    } else if (stopover.arrival || stopover.plannedArrival) {
-      const arrivalTime = stopover.arrival || stopover.plannedArrival;
-      const arrTime = new Date(arrivalTime).getTime();
-      if (arrTime > now) {
-        return stopover;
-      }
+    if (!vehicle.nextStopovers || vehicle.nextStopovers.length === 0) {
+        return null;
     }
-  }
 
-  return vehicle.nextStopovers[0];
+    const now = Date.now();
+
+    for (const stopover of vehicle.nextStopovers) {
+        const departureTime = stopover.departure || stopover.plannedDeparture;
+
+        if (departureTime) {
+            const depTime = new Date(departureTime).getTime();
+            if (depTime > now) {
+                return stopover;
+            }
+        } else if (stopover.arrival || stopover.plannedArrival) {
+            const arrivalTime = stopover.arrival || stopover.plannedArrival;
+            const arrTime = new Date(arrivalTime).getTime();
+            if (arrTime > now) {
+                return stopover;
+            }
+        }
+    }
+
+    return vehicle.nextStopovers[0];
 };
 
 const createStopPopupContent = (stopName) => {
-  return `
+    return `
     <div class="radar-popup-container">
       <div class="radar-popup-header">
         <div class="radar-popup-icon">📍</div>
@@ -899,45 +899,45 @@ const createStopPopupContent = (stopName) => {
 };
 
 const createVehiclePopupContent = (vehicle) => {
-  const lineName = vehicle.line?.name || '?';
-  const productType = vehicle.line?.product || 'Vehicle';
-  const displayName = getProductDisplayName(productType);
-  const color = getVehicleColor(productType, lineName);
+    const lineName = vehicle.line?.name || '?';
+    const productType = vehicle.line?.product || 'Vehicle';
+    const displayName = getProductDisplayName(productType);
+    const color = getVehicleColor(productType, lineName);
 
-  const lastStopover = vehicle.nextStopovers?.[vehicle.nextStopovers.length - 1];
-  const destination = lastStopover?.stop?.name || 'In Service';
+    const lastStopover = vehicle.nextStopovers?.[vehicle.nextStopovers.length - 1];
+    const destination = lastStopover?.stop?.name || 'In Service';
 
-  const nextStopover = getUpcomingStopover(vehicle);
-  const nextStop = nextStopover?.stop?.name;
+    const nextStopover = getUpcomingStopover(vehicle);
+    const nextStop = nextStopover?.stop?.name;
 
-  // Get actual and planned times
-  const actualTime = nextStopover?.arrival || nextStopover?.departure;
-  const plannedTime = nextStopover?.plannedArrival || nextStopover?.plannedDeparture;
+    // Get actual and planned times
+    const actualTime = nextStopover?.arrival || nextStopover?.departure;
+    const plannedTime = nextStopover?.plannedArrival || nextStopover?.plannedDeparture;
 
-  const speed = vehicle.speed ? `${Math.round(vehicle.speed)} km/h` : null;
+    const speed = vehicle.speed ? `${Math.round(vehicle.speed)} km/h` : null;
 
-  const delay = nextStopover?.arrivalDelay ?? nextStopover?.departureDelay ??
-    computeDelaySecs(actualTime, plannedTime);
+    const delay = nextStopover?.arrivalDelay ?? nextStopover?.departureDelay ??
+        computeDelaySecs(actualTime, plannedTime);
 
-  const hasDelayData = delay !== null;
-  const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
+    const hasDelayData = delay !== null;
+    const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
 
-  let timeDisplay = '';
-  if (actualTime || plannedTime) {
-    if (hasSignificantDelay) {
-      const delayColor = delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success';
-      timeDisplay = `
+    let timeDisplay = '';
+    if (actualTime || plannedTime) {
+        if (hasSignificantDelay) {
+            const delayColor = delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success';
+            timeDisplay = `
         <span class="line-through opacity-40">${fmtTime(plannedTime)}</span>
         <span class="${delayColor} font-semibold">${fmtTime(actualTime)}</span>
       `;
-    } else if (hasDelayData && delay === 0) {
-      timeDisplay = `<span class="text-success font-semibold">${fmtTime(actualTime || plannedTime)}</span>`;
-    } else {
-      timeDisplay = `<span>${fmtTime(actualTime || plannedTime)}</span>`;
+        } else if (hasDelayData && delay === 0) {
+            timeDisplay = `<span class="text-success font-semibold">${fmtTime(actualTime || plannedTime)}</span>`;
+        } else {
+            timeDisplay = `<span>${fmtTime(actualTime || plannedTime)}</span>`;
+        }
     }
-  }
 
-  return `
+    return `
     <div class="radar-popup-container">
       <div class="radar-popup-header">
         <div class="radar-popup-badge" style="background-color: ${color};">
@@ -973,309 +973,309 @@ const createVehiclePopupContent = (vehicle) => {
 };
 
 const createPopup = (content) => {
-  return L.popup({
-    className: 'radar-popup',
-    closeButton: true,
-    autoClose: false,
-    closeOnClick: false,
-    maxWidth: 280,
-    minWidth: 240
-  }).setContent(content);
+    return L.popup({
+        className: 'radar-popup',
+        closeButton: true,
+        autoClose: false,
+        closeOnClick: false,
+        maxWidth: 280,
+        minWidth: 240
+    }).setContent(content);
 };
 
 // CARTO's basemaps CDN now requires an API key, so the dark theme uses
 // Esri's keyless Dark Gray Canvas instead. Both providers are free for
 // low-volume use; see https://operations.osmfoundation.org/policies/tiles/
 const createRadarTileLayer = () => {
-  const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
-  return isDarkTheme
-    ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 16
-    })
-    : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19
-    });
+    const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+    return isDarkTheme
+        ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 16
+        })
+        : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        });
 };
 
 // Replaces the basemap when the theme changes, keeping the current view
 const updateRadarTileLayer = () => {
-  if (!radarState.map || !radarState.tileLayer) return;
-  const center = radarState.map.getCenter();
-  const zoom = radarState.map.getZoom();
-  radarState.tileLayer.remove();
-  radarState.tileLayer = createRadarTileLayer().addTo(radarState.map);
-  radarState.map.setView(center, zoom, { animate: false });
+    if (!radarState.map || !radarState.tileLayer) return;
+    const center = radarState.map.getCenter();
+    const zoom = radarState.map.getZoom();
+    radarState.tileLayer.remove();
+    radarState.tileLayer = createRadarTileLayer().addTo(radarState.map);
+    radarState.map.setView(center, zoom, { animate: false });
 };
 
 const initRadarMap = () => {
-  if (radarState.map) return;
+    if (radarState.map) return;
 
-  const mapElement = $('#radar-map');
-  if (!mapElement) return;
+    const mapElement = $('#radar-map');
+    if (!mapElement) return;
 
-  radarState.map = L.map('radar-map', {
-    zoomControl: false,
-    attributionControl: true
-  });
+    radarState.map = L.map('radar-map', {
+        zoomControl: false,
+        attributionControl: true
+    });
 
-  radarState.tileLayer = createRadarTileLayer();
-  radarState.tileLayer.addTo(radarState.map);
-  radarState.map.setView([52.52, 13.405], 13);
+    radarState.tileLayer = createRadarTileLayer();
+    radarState.tileLayer.addTo(radarState.map);
+    radarState.map.setView([52.52, 13.405], 13);
 };
 
 const addStopMarker = (stop) => {
-  if (!radarState.map || !stop?.location?.latitude || !stop?.location?.longitude) return;
+    if (!radarState.map || !stop?.location?.latitude || !stop?.location?.longitude) return;
 
-  radarState.stopMarker = L.marker(
-    [stop.location.latitude, stop.location.longitude],
-    { icon: createStopIcon() }
-  ).addTo(radarState.map);
+    radarState.stopMarker = L.marker(
+        [stop.location.latitude, stop.location.longitude],
+        { icon: createStopIcon() }
+    ).addTo(radarState.map);
 
-  radarState.stopMarker.bindPopup(createPopup(createStopPopupContent(stop.name)));
+    radarState.stopMarker.bindPopup(createPopup(createStopPopupContent(stop.name)));
 };
 
 // Reuse existing markers between refreshes. Tearing down and rebuilding every
 // 10s re-created the DOM and closed any popup the user had open.
 const updateRadarMarkers = () => {
-  if (!radarState.map) return;
+    if (!radarState.map) return;
 
-  const openMarker = radarState.map._popup?._source || null;
-  const openTripId = openMarker?._vehicleTripId || null;
+    const openMarker = radarState.map._popup?._source || null;
+    const openTripId = openMarker?._vehicleTripId || null;
 
-  const seen = new Set();
-  const activeMarkers = [];
+    const seen = new Set();
+    const activeMarkers = [];
 
-  // Keep the stop marker in sync with the currently selected stop
-  if (state.stop?.location?.latitude) {
-    const latLng = [state.stop.location.latitude, state.stop.location.longitude];
-    if (radarState.stopMarker) {
-      radarState.stopMarker.setLatLng(latLng);
-      radarState.stopMarker.setPopupContent(createStopPopupContent(state.stop.name));
-    } else {
-      addStopMarker(state.stop);
-    }
-  } else if (radarState.stopMarker) {
-    radarState.stopMarker.remove();
-    radarState.stopMarker = null;
-  }
-
-  for (const vehicle of radarState.vehicles) {
-    if (!vehicle.location?.latitude || !vehicle.location?.longitude) continue;
-
-    const lineName = vehicle.line?.name || '?';
-    const tripId = vehicle.tripId || `${lineName}-${vehicle.location.latitude}-${vehicle.location.longitude}`;
-    let marker = radarState.markersByTripId.get(tripId);
-
-    if (marker) {
-      marker.setLatLng([vehicle.location.latitude, vehicle.location.longitude]);
-      marker.setIcon(createVehicleIcon(getVehicleColor(vehicle.line?.product, lineName), lineName));
-      marker.setPopupContent(createVehiclePopupContent(vehicle));
-    } else {
-      marker = L.marker(
-        [vehicle.location.latitude, vehicle.location.longitude],
-        { icon: createVehicleIcon(getVehicleColor(vehicle.line?.product, lineName), lineName) }
-      ).addTo(radarState.map);
-      marker.bindPopup(createPopup(createVehiclePopupContent(vehicle)));
+    // Keep the stop marker in sync with the currently selected stop
+    if (state.stop?.location?.latitude) {
+        const latLng = [state.stop.location.latitude, state.stop.location.longitude];
+        if (radarState.stopMarker) {
+            radarState.stopMarker.setLatLng(latLng);
+            radarState.stopMarker.setPopupContent(createStopPopupContent(state.stop.name));
+        } else {
+            addStopMarker(state.stop);
+        }
+    } else if (radarState.stopMarker) {
+        radarState.stopMarker.remove();
+        radarState.stopMarker = null;
     }
 
-    marker._vehicleTripId = tripId;
-    radarState.markersByTripId.set(tripId, marker);
-    seen.add(tripId);
-    activeMarkers.push(marker);
-  }
+    for (const vehicle of radarState.vehicles) {
+        if (!vehicle.location?.latitude || !vehicle.location?.longitude) continue;
 
-  // Only remove markers whose vehicle is gone
-  for (const [tripId, marker] of radarState.markersByTripId) {
-    if (!seen.has(tripId)) {
-      marker.remove();
-      radarState.markersByTripId.delete(tripId);
+        const lineName = vehicle.line?.name || '?';
+        const tripId = vehicle.tripId || `${lineName}-${vehicle.location.latitude}-${vehicle.location.longitude}`;
+        let marker = radarState.markersByTripId.get(tripId);
+
+        if (marker) {
+            marker.setLatLng([vehicle.location.latitude, vehicle.location.longitude]);
+            marker.setIcon(createVehicleIcon(getVehicleColor(vehicle.line?.product, lineName), lineName));
+            marker.setPopupContent(createVehiclePopupContent(vehicle));
+        } else {
+            marker = L.marker(
+                [vehicle.location.latitude, vehicle.location.longitude],
+                { icon: createVehicleIcon(getVehicleColor(vehicle.line?.product, lineName), lineName) }
+            ).addTo(radarState.map);
+            marker.bindPopup(createPopup(createVehiclePopupContent(vehicle)));
+        }
+
+        marker._vehicleTripId = tripId;
+        radarState.markersByTripId.set(tripId, marker);
+        seen.add(tripId);
+        activeMarkers.push(marker);
     }
-  }
 
-  radarState.markers = activeMarkers;
+    // Only remove markers whose vehicle is gone
+    for (const [tripId, marker] of radarState.markersByTripId) {
+        if (!seen.has(tripId)) {
+            marker.remove();
+            radarState.markersByTripId.delete(tripId);
+        }
+    }
 
-  // Reopen the popup the user had open, so it survives the refresh
-  if (openTripId) {
-    const marker = radarState.markersByTripId.get(openTripId);
-    if (marker) marker.openPopup();
-  }
+    radarState.markers = activeMarkers;
+
+    // Reopen the popup the user had open, so it survives the refresh
+    if (openTripId) {
+        const marker = radarState.markersByTripId.get(openTripId);
+        if (marker) marker.openPopup();
+    }
 };
 
 const getStopFromStateOrStorage = () => {
-  if (state.stop?.location?.latitude && state.stop?.location?.longitude) {
-    return state.stop;
-  }
-
-  try {
-    const savedStop = JSON.parse(localStorage.getItem('selectedStop') || 'null');
-    if (savedStop?.location?.latitude && savedStop?.location?.longitude) {
-      state.stop = savedStop;
-      return savedStop;
+    if (state.stop?.location?.latitude && state.stop?.location?.longitude) {
+        return state.stop;
     }
-  } catch (error) {
-    console.error('Failed to restore stop from localStorage:', error);
-  }
 
-  return null;
+    try {
+        const savedStop = JSON.parse(localStorage.getItem('selectedStop') || 'null');
+        if (savedStop?.location?.latitude && savedStop?.location?.longitude) {
+            state.stop = savedStop;
+            return savedStop;
+        }
+    } catch (error) {
+        console.error('Failed to restore stop from localStorage:', error);
+    }
+
+    return null;
 };
 
 const updateRadarStats = (vehicleCount) => {
-  const statsDiv = $('#radar-stats');
-  if (!statsDiv) return;
+    const statsDiv = $('#radar-stats');
+    if (!statsDiv) return;
 
-  statsDiv.innerHTML = `
+    statsDiv.innerHTML = `
     <div class="text-xs opacity-70">Vehicles: <span class="font-bold">${vehicleCount}</span></div>
   `;
 };
 
 const filterVehiclesByTripIds = (vehicles, tripIds) => {
-  if (!tripIds || tripIds.size === 0) return [];
+    if (!tripIds || tripIds.size === 0) return [];
 
-  return vehicles.filter(vehicle => {
-    return vehicle.tripId && tripIds.has(vehicle.tripId);
-  });
+    return vehicles.filter(vehicle => {
+        return vehicle.tripId && tripIds.has(vehicle.tripId);
+    });
 };
 
 const fetchRadarData = async (showLoading = true) => {
-  const radarLoading = $('#radar-loading');
-  const radarError = $('#radar-error');
+    const radarLoading = $('#radar-loading');
+    const radarError = $('#radar-error');
 
-  if (showLoading) {
-    setHidden(radarLoading, false);
-  }
-  setHidden(radarError, true);
-
-  try {
-    const stop = getStopFromStateOrStorage();
-    if (!stop) {
-      throw new Error('No stop available');
-    }
-
-    // If cache is empty, fetch fresh data
-    if (state.allDepartures.length === 0) {
-      const deptUrl = `${API_BASE}/stops/${encodeURIComponent(stop.id)}/departures?duration=${CACHE_DURATION_MINUTES}&remarks=true&language=en&pretty=false`;
-      const deptData = await fetchJSON(deptUrl);
-      const items = Array.isArray(deptData) ? deptData : (deptData?.departures || deptData?.results || []);
-      state.allDepartures = items;
-    }
-
-    // Extract all tripIds from departures
-    const tripIds = new Set(
-      state.allDepartures
-        .filter(dep => dep.tripId)
-        .map(dep => dep.tripId)
-    );
-
-    if (tripIds.size === 0) {
-      radarState.vehicles = [];
-      updateRadarStats(0);
-      updateRadarMarkers();
-      if (showLoading) {
-        setHidden(radarLoading, true);
-      }
-      return;
-    }
-
-    const { latitude: lat, longitude: lon } = stop.location;
-    const radius = RADAR_CONFIG.SEARCH_RADIUS;
-
-    const url = `${API_BASE}/radar?north=${lat + radius}&west=${lon - radius}&south=${lat - radius}&east=${lon + radius}&results=${RADAR_CONFIG.MAX_RESULTS}`;
-
-    // Cancel any in-flight radar request so a slow response can't overwrite
-    // newer data when the 10s interval fires again
-    radarState.abort?.abort();
-    radarState.abort = new AbortController();
-
-    const response = await fetch(url, { signal: radarState.abort.signal });
-
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}`);
-    }
-
-    const data = await response.json();
-    const allVehicles = Array.isArray(data) ? data : (data.movements || []);
-
-    radarState.vehicles = filterVehiclesByTripIds(allVehicles, tripIds);
-    updateRadarStats(radarState.vehicles.length);
-    updateRadarMarkers();
-
-  } catch (error) {
-    if (error.name === 'AbortError') return;
-    console.error('Failed to fetch radar data:', error);
-    setHidden($('#radar-error'), false);
-  } finally {
     if (showLoading) {
-      setHidden($('#radar-loading'), true);
+        setHidden(radarLoading, false);
     }
-  }
+    setHidden(radarError, true);
+
+    try {
+        const stop = getStopFromStateOrStorage();
+        if (!stop) {
+            throw new Error('No stop available');
+        }
+
+        // If cache is empty, fetch fresh data
+        if (state.allDepartures.length === 0) {
+            const deptUrl = `${API_BASE}/stops/${encodeURIComponent(stop.id)}/departures?duration=${CACHE_DURATION_MINUTES}&remarks=true&language=en&pretty=false`;
+            const deptData = await fetchJSON(deptUrl);
+            const items = Array.isArray(deptData) ? deptData : (deptData?.departures || deptData?.results || []);
+            state.allDepartures = items;
+        }
+
+        // Extract all tripIds from departures
+        const tripIds = new Set(
+            state.allDepartures
+                .filter(dep => dep.tripId)
+                .map(dep => dep.tripId)
+        );
+
+        if (tripIds.size === 0) {
+            radarState.vehicles = [];
+            updateRadarStats(0);
+            updateRadarMarkers();
+            if (showLoading) {
+                setHidden(radarLoading, true);
+            }
+            return;
+        }
+
+        const { latitude: lat, longitude: lon } = stop.location;
+        const radius = RADAR_CONFIG.SEARCH_RADIUS;
+
+        const url = `${API_BASE}/radar?north=${lat + radius}&west=${lon - radius}&south=${lat - radius}&east=${lon + radius}&results=${RADAR_CONFIG.MAX_RESULTS}`;
+
+        // Cancel any in-flight radar request so a slow response can't overwrite
+        // newer data when the 10s interval fires again
+        radarState.abort?.abort();
+        radarState.abort = new AbortController();
+
+        const response = await fetch(url, { signal: radarState.abort.signal });
+
+        if (!response.ok) {
+            throw new Error(`API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        const allVehicles = Array.isArray(data) ? data : (data.movements || []);
+
+        radarState.vehicles = filterVehiclesByTripIds(allVehicles, tripIds);
+        updateRadarStats(radarState.vehicles.length);
+        updateRadarMarkers();
+
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Failed to fetch radar data:', error);
+        setHidden($('#radar-error'), false);
+    } finally {
+        if (showLoading) {
+            setHidden($('#radar-loading'), true);
+        }
+    }
 };
 
 const centerMapOnStop = () => {
-  if (!radarState.map || !state.stop?.location) return;
+    if (!radarState.map || !state.stop?.location) return;
 
-  const { latitude, longitude } = state.stop.location;
-  radarState.map.setView([latitude, longitude], RADAR_CONFIG.DEFAULT_ZOOM);
+    const { latitude, longitude } = state.stop.location;
+    radarState.map.setView([latitude, longitude], RADAR_CONFIG.DEFAULT_ZOOM);
 };
 
 const openRadarModal = async () => {
-  const stop = getStopFromStateOrStorage();
+    const stop = getStopFromStateOrStorage();
 
-  if (!stop) {
-    showToast('Please select a stop first', 'warning');
-    return;
-  }
+    if (!stop) {
+        showToast('Please select a stop first', 'warning');
+        return;
+    }
 
-  const modal = $('#radar-modal');
-  if (!modal) return;
+    const modal = $('#radar-modal');
+    if (!modal) return;
 
-  modal.showModal();
+    modal.showModal();
 
-  if (!radarState.map) {
-    setTimeout(async () => {
-      initRadarMap();
-      await fetchRadarData();
-      centerMapOnStop();
-      startRadarAutoRefresh();
-    }, RADAR_CONFIG.MAP_INIT_DELAY);
-  } else {
-    await fetchRadarData();
-    centerMapOnStop();
-    startRadarAutoRefresh();
-  }
+    if (!radarState.map) {
+        setTimeout(async () => {
+            initRadarMap();
+            await fetchRadarData();
+            centerMapOnStop();
+            startRadarAutoRefresh();
+        }, RADAR_CONFIG.MAP_INIT_DELAY);
+    } else {
+        await fetchRadarData();
+        centerMapOnStop();
+        startRadarAutoRefresh();
+    }
 };
 
 const startRadarAutoRefresh = () => {
 
-  if (radarState.refreshTimerId) {
-    clearInterval(radarState.refreshTimerId);
-  }
+    if (radarState.refreshTimerId) {
+        clearInterval(radarState.refreshTimerId);
+    }
 
-  radarState.refreshTimerId = setInterval(async () => {
-    await fetchRadarData(false);
-  }, RADAR_CONFIG.REFRESH_INTERVAL);
+    radarState.refreshTimerId = setInterval(async () => {
+        await fetchRadarData(false);
+    }, RADAR_CONFIG.REFRESH_INTERVAL);
 };
 
 const stopRadarAutoRefresh = () => {
-  if (radarState.refreshTimerId) {
-    clearInterval(radarState.refreshTimerId);
-    radarState.refreshTimerId = null;
-  }
-  // Drop any in-flight request so nothing repaints after the modal closes
-  radarState.abort?.abort();
-  radarState.abort = null;
+    if (radarState.refreshTimerId) {
+        clearInterval(radarState.refreshTimerId);
+        radarState.refreshTimerId = null;
+    }
+    // Drop any in-flight request so nothing repaints after the modal closes
+    radarState.abort?.abort();
+    radarState.abort = null;
 };
 
 const recenterRadar = () => {
-  if (!radarState.map || !state.stop?.location) return;
+    if (!radarState.map || !state.stop?.location) return;
 
-  const { latitude, longitude } = state.stop.location;
-  radarState.map.setView([latitude, longitude], RADAR_CONFIG.DEFAULT_ZOOM, { animate: true });
+    const { latitude, longitude } = state.stop.location;
+    radarState.map.setView([latitude, longitude], RADAR_CONFIG.DEFAULT_ZOOM, { animate: true });
 };
 
 const closeRadarModal = () => {
-  stopRadarAutoRefresh();
+    stopRadarAutoRefresh();
 };
 
 // ============================================================================
@@ -1283,30 +1283,30 @@ const closeRadarModal = () => {
 // ============================================================================
 
 const switchView = (viewName) => {
-  state.currentView = viewName;
+    state.currentView = viewName;
 
-  const views = {
-    departures: {
-      element: $('#departures-view'), onShow: () => {
-        setTimeout(() => requestAnimationFrame(updateTabIndicator), 0);
-      }
-    },
-    journey: { element: $('#journey-view') },
-    settings: { element: $('#settings-view') }
-  };
+    const views = {
+        departures: {
+            element: $('#departures-view'), onShow: () => {
+                setTimeout(() => requestAnimationFrame(updateTabIndicator), 0);
+            }
+        },
+        journey: { element: $('#journey-view') },
+        settings: { element: $('#settings-view') }
+    };
 
-  Object.entries(views).forEach(([name, config]) => {
-    const isActive = name === viewName;
-    setHidden(config.element, !isActive);
-    if (isActive && config.onShow) {
-      config.onShow();
-    }
-  });
+    Object.entries(views).forEach(([name, config]) => {
+        const isActive = name === viewName;
+        setHidden(config.element, !isActive);
+        if (isActive && config.onShow) {
+            config.onShow();
+        }
+    });
 
-  $$('.dock button').forEach(btn => btn.classList.remove('dock-active'));
-  $(`#dock-${viewName}`)?.classList.add('dock-active');
+    $$('.dock button').forEach(btn => btn.classList.remove('dock-active'));
+    $(`#dock-${viewName}`)?.classList.add('dock-active');
 
-  localStorage.setItem('currentView', viewName);
+    localStorage.setItem('currentView', viewName);
 };
 
 // ============================================================================
@@ -1314,185 +1314,185 @@ const switchView = (viewName) => {
 // ============================================================================
 
 const journeySearchState = {
-  origin: { prevValue: '', suppressBlur: false, abort: null },
-  destination: { prevValue: '', suppressBlur: false, abort: null }
+    origin: { prevValue: '', suppressBlur: false, abort: null },
+    destination: { prevValue: '', suppressBlur: false, abort: null }
 };
 
 const setupJourneyInputListeners = (input, resultsBox, fieldState) => {
-  if (!input || !resultsBox) return;
+    if (!input || !resultsBox) return;
 
-  input.addEventListener('input', debounce(() => {
-    if (fieldState.abort) fieldState.abort.abort();
-    const controller = new AbortController();
-    fieldState.abort = controller;
-    searchJourneyStops(input.value, resultsBox, controller);
-  }, SEARCH_DEBOUNCE_MS));
+    input.addEventListener('input', debounce(() => {
+        if (fieldState.abort) fieldState.abort.abort();
+        const controller = new AbortController();
+        fieldState.abort = controller;
+        searchJourneyStops(input.value, resultsBox, controller);
+    }, SEARCH_DEBOUNCE_MS));
 
-  input.addEventListener('focus', () => {
-    fieldState.prevValue = input.value;
-    input.value = '';
-  });
+    input.addEventListener('focus', () => {
+        fieldState.prevValue = input.value;
+        input.value = '';
+    });
 
-  input.addEventListener('blur', () => {
-    if (fieldState.suppressBlur) return;
-    if (!input.value.trim()) {
-      input.value = fieldState.prevValue;
-    }
-    resultsBox.classList.add('hidden');
-  });
+    input.addEventListener('blur', () => {
+        if (fieldState.suppressBlur) return;
+        if (!input.value.trim()) {
+            input.value = fieldState.prevValue;
+        }
+        resultsBox.classList.add('hidden');
+    });
 
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      input.value = fieldState.prevValue;
-      resultsBox.classList.add('hidden');
-      input.blur();
-    }
-  });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            e.stopPropagation();
+            input.value = fieldState.prevValue;
+            resultsBox.classList.add('hidden');
+            input.blur();
+        }
+    });
 
-  resultsBox.addEventListener('mousedown', () => { fieldState.suppressBlur = true; });
-  resultsBox.addEventListener('mouseup', () => {
-    setTimeout(() => { fieldState.suppressBlur = false; }, 0);
-  });
+    resultsBox.addEventListener('mousedown', () => { fieldState.suppressBlur = true; });
+    resultsBox.addEventListener('mouseup', () => {
+        setTimeout(() => { fieldState.suppressBlur = false; }, 0);
+    });
 };
 
 const setupJourneySearchListeners = () => {
-  const journeyOriginInput = $('#journey-origin');
-  const journeyDestinationInput = $('#journey-destination');
-  const journeyOriginResults = $('#journey-origin-results');
-  const journeyDestinationResults = $('#journey-destination-results');
+    const journeyOriginInput = $('#journey-origin');
+    const journeyDestinationInput = $('#journey-destination');
+    const journeyOriginResults = $('#journey-origin-results');
+    const journeyDestinationResults = $('#journey-destination-results');
 
-  if (!journeyOriginInput || !journeyDestinationInput) return;
+    if (!journeyOriginInput || !journeyDestinationInput) return;
 
-  setupJourneyInputListeners(journeyOriginInput, journeyOriginResults, journeySearchState.origin);
-  setupJourneyInputListeners(journeyDestinationInput, journeyDestinationResults, journeySearchState.destination);
+    setupJourneyInputListeners(journeyOriginInput, journeyOriginResults, journeySearchState.origin);
+    setupJourneyInputListeners(journeyDestinationInput, journeyDestinationResults, journeySearchState.destination);
 };
 
 const searchJourneyStops = async (query, resultsBox, controller) => {
-  const trimmedQuery = query?.trim();
+    const trimmedQuery = query?.trim();
 
-  if (!trimmedQuery || trimmedQuery.length < 2) {
-    resultsBox.classList.add('hidden');
-    resultsBox.innerHTML = '';
-    return;
-  }
+    if (!trimmedQuery || trimmedQuery.length < 2) {
+        resultsBox.classList.add('hidden');
+        resultsBox.innerHTML = '';
+        return;
+    }
 
-  const url = `${API_BASE}/locations?query=${encodeURIComponent(trimmedQuery)}&results=8&stops=true&addresses=true&poi=true&language=en&pretty=false`;
-  resultsBox.innerHTML = '<progress class="progress w-full"></progress>';
-  resultsBox.classList.remove('hidden');
+    const url = `${API_BASE}/locations?query=${encodeURIComponent(trimmedQuery)}&results=8&stops=true&addresses=true&poi=true&language=en&pretty=false`;
+    resultsBox.innerHTML = '<progress class="progress w-full"></progress>';
+    resultsBox.classList.remove('hidden');
 
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { accept: 'application/json' }
-    });
+    try {
+        const res = await fetch(url, {
+            signal: controller.signal,
+            headers: { accept: 'application/json' }
+        });
 
-    if (!res.ok) throw new Error('Search failed');
+        if (!res.ok) throw new Error('Search failed');
 
-    const items = await res.json();
-    renderJourneySearchResults(items, resultsBox);
-  } catch (e) {
-    if (controller.signal.aborted) return;
-    resultsBox.innerHTML = '';
-    resultsBox.classList.add('hidden');
-    showToast('Search error. Try again.', 'error');
-  }
+        const items = await res.json();
+        renderJourneySearchResults(items, resultsBox);
+    } catch (e) {
+        if (controller.signal.aborted) return;
+        resultsBox.innerHTML = '';
+        resultsBox.classList.add('hidden');
+        showToast('Search error. Try again.', 'error');
+    }
 };
 
 const handleJourneyLocationSelect = (location, isOrigin, input, resultsBox, fieldState, nextFocusElement) => {
-  if (isOrigin) {
-    state.journey.origin = location;
-  } else {
-    state.journey.destination = location;
-  }
-
-  resultsBox.classList.add('hidden');
-  resultsBox.innerHTML = '';
-  input.value = location.name;
-  fieldState.prevValue = location.name;
-  fieldState.suppressBlur = false;
-  input.blur();
-
-  setTimeout(() => {
-    if (document.activeElement === input) {
-      nextFocusElement?.focus();
+    if (isOrigin) {
+        state.journey.origin = location;
+    } else {
+        state.journey.destination = location;
     }
-  }, 0);
+
+    resultsBox.classList.add('hidden');
+    resultsBox.innerHTML = '';
+    input.value = location.name;
+    fieldState.prevValue = location.name;
+    fieldState.suppressBlur = false;
+    input.blur();
+
+    setTimeout(() => {
+        if (document.activeElement === input) {
+            nextFocusElement?.focus();
+        }
+    }, 0);
 };
 
 const renderJourneySearchResults = (locations, resultsBox) => {
-  if (!locations.length) {
-    resultsBox.innerHTML = '<div class="p-3 text-sm opacity-70">No results</div>';
-    return;
-  }
+    if (!locations.length) {
+        resultsBox.innerHTML = '<div class="p-3 text-sm opacity-70">No results</div>';
+        return;
+    }
 
-  resultsBox.innerHTML = '';
-  const ul = document.createElement('ul');
-  ul.className = 'menu bg-base-200 rounded-box';
+    resultsBox.innerHTML = '';
+    const ul = document.createElement('ul');
+    ul.className = 'menu bg-base-200 rounded-box';
 
-  const journeyOriginResults = $('#journey-origin-results');
-  const journeyOriginInput = $('#journey-origin');
-  const journeyDestinationInput = $('#journey-destination');
-  const isOrigin = resultsBox === journeyOriginResults;
+    const journeyOriginResults = $('#journey-origin-results');
+    const journeyOriginInput = $('#journey-origin');
+    const journeyDestinationInput = $('#journey-destination');
+    const isOrigin = resultsBox === journeyOriginResults;
 
-  const currentInput = isOrigin ? journeyOriginInput : journeyDestinationInput;
-  const fieldState = isOrigin ? journeySearchState.origin : journeySearchState.destination;
-  const nextFocus = isOrigin ? journeyDestinationInput : $('#journey-search-btn');
+    const currentInput = isOrigin ? journeyOriginInput : journeyDestinationInput;
+    const fieldState = isOrigin ? journeySearchState.origin : journeySearchState.destination;
+    const nextFocus = isOrigin ? journeyDestinationInput : $('#journey-search-btn');
 
-  locations.forEach(location => {
-    const li = document.createElement('li');
-    li.innerHTML = `
+    locations.forEach(location => {
+        const li = document.createElement('li');
+        li.innerHTML = `
       <a class="justify-between">
         <span><span class="font-medium">${escapeHtml(location.name)}</span></span>
       </a>
     `;
 
-    li.addEventListener('click', () => {
-      handleJourneyLocationSelect(location, isOrigin, currentInput, resultsBox, fieldState, nextFocus);
+        li.addEventListener('click', () => {
+            handleJourneyLocationSelect(location, isOrigin, currentInput, resultsBox, fieldState, nextFocus);
+        });
+
+        ul.appendChild(li);
     });
 
-    ul.appendChild(li);
-  });
-
-  resultsBox.appendChild(ul);
+    resultsBox.appendChild(ul);
 };
 
 const findNearbyForJourney = async () => {
-  if (!('geolocation' in navigator)) {
-    showToast('Geolocation not supported', 'warning');
-    return;
-  }
+    if (!('geolocation' in navigator)) {
+        showToast('Geolocation not supported', 'warning');
+        return;
+    }
 
-  const journeyOriginResults = $('#journey-origin-results');
-  if (!journeyOriginResults) return;
+    const journeyOriginResults = $('#journey-origin-results');
+    if (!journeyOriginResults) return;
 
-  journeyOriginResults.classList.remove('hidden');
-  journeyOriginResults.innerHTML = '<div class="p-3">Locating… <progress class="progress w-24 ml-2"></progress></div>';
+    journeyOriginResults.classList.remove('hidden');
+    journeyOriginResults.innerHTML = '<div class="p-3">Locating… <progress class="progress w-24 ml-2"></progress></div>';
 
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      try {
-        const { latitude, longitude } = pos.coords;
-        const url = `${API_BASE}/locations/nearby?latitude=${latitude}&longitude=${longitude}&results=8&stops=true&poi=false&language=en&pretty=false`;
-        const res = await fetch(url, { headers: { accept: 'application/json' } });
+    navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+            try {
+                const { latitude, longitude } = pos.coords;
+                const url = `${API_BASE}/locations/nearby?latitude=${latitude}&longitude=${longitude}&results=8&stops=true&poi=false&language=en&pretty=false`;
+                const res = await fetch(url, { headers: { accept: 'application/json' } });
 
-        if (!res.ok) throw new Error('Nearby search failed');
+                if (!res.ok) throw new Error('Nearby search failed');
 
-        const items = await res.json();
-        renderJourneySearchResults(items, journeyOriginResults);
-      } catch (e) {
-        showToast('Failed to fetch nearby stops', 'error');
-        journeyOriginResults.classList.add('hidden');
-        journeyOriginResults.innerHTML = '';
-      }
-    },
-    () => {
-      showToast('Location permission denied', 'warning');
-      journeyOriginResults.classList.add('hidden');
-      journeyOriginResults.innerHTML = '';
-    },
-    { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
-  );
+                const items = await res.json();
+                renderJourneySearchResults(items, journeyOriginResults);
+            } catch (e) {
+                showToast('Failed to fetch nearby stops', 'error');
+                journeyOriginResults.classList.add('hidden');
+                journeyOriginResults.innerHTML = '';
+            }
+        },
+        () => {
+            showToast('Location permission denied', 'warning');
+            journeyOriginResults.classList.add('hidden');
+            journeyOriginResults.innerHTML = '';
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+    );
 };
 
 // ============================================================================
@@ -1500,110 +1500,110 @@ const findNearbyForJourney = async () => {
 // ============================================================================
 
 const searchJourneys = async () => {
-  if (!state.journey.origin || !state.journey.destination) {
-    showToast('Please select both origin and destination', 'warning');
-    return;
-  }
-
-  setHidden($('#journey-empty'), true);
-  setHidden($('#journey-error'), true);
-  setHidden($('#journey-loading'), false);
-  $('#journeys-list').innerHTML = '';
-
-  try {
-    const fromId = state.journey.origin.id || `${state.journey.origin.latitude},${state.journey.origin.longitude}`;
-    const toId = state.journey.destination.id || `${state.journey.destination.latitude},${state.journey.destination.longitude}`;
-
-    const params = new URLSearchParams({
-      results: '5',
-      stopovers: 'true',
-      remarks: 'true',
-      language: 'en',
-      pretty: 'false',
-      scheduledDays: 'false'
-    });
-
-    // Get departure time from time picker
-    const timePicker = $('#journey-time-picker');
-    if (timePicker && timePicker.value) {
-      const [hours, minutes] = timePicker.value.split(':').map(Number);
-      // Time-of-day only: resolved against today, even if already past
-      const departureDate = new Date();
-      departureDate.setHours(hours, minutes, 0, 0);
-
-      params.append('departure', departureDate.toISOString());
-    } else {
-      params.append('departure', 'now');
+    if (!state.journey.origin || !state.journey.destination) {
+        showToast('Please select both origin and destination', 'warning');
+        return;
     }
 
-    const url = `${API_BASE}/journeys?from=${encodeURIComponent(fromId)}&to=${encodeURIComponent(toId)}&${params.toString()}`;
-    const data = await fetchJSON(url);
+    setHidden($('#journey-empty'), true);
+    setHidden($('#journey-error'), true);
+    setHidden($('#journey-loading'), false);
+    $('#journeys-list').innerHTML = '';
 
-    const journeys = data.journeys || [];
-    state.journey.journeys = journeys;
+    try {
+        const fromId = state.journey.origin.id || `${state.journey.origin.latitude},${state.journey.origin.longitude}`;
+        const toId = state.journey.destination.id || `${state.journey.destination.latitude},${state.journey.destination.longitude}`;
 
-    setHidden($('#journey-loading'), true);
+        const params = new URLSearchParams({
+            results: '5',
+            stopovers: 'true',
+            remarks: 'true',
+            language: 'en',
+            pretty: 'false',
+            scheduledDays: 'false'
+        });
 
-    if (journeys.length === 0) {
-      $('#journey-error-msg').textContent = 'No journeys found. Try different locations or times.';
-      setHidden($('#journey-error'), false);
-      return;
+        // Get departure time from time picker
+        const timePicker = $('#journey-time-picker');
+        if (timePicker && timePicker.value) {
+            const [hours, minutes] = timePicker.value.split(':').map(Number);
+            // Time-of-day only: resolved against today, even if already past
+            const departureDate = new Date();
+            departureDate.setHours(hours, minutes, 0, 0);
+
+            params.append('departure', departureDate.toISOString());
+        } else {
+            params.append('departure', 'now');
+        }
+
+        const url = `${API_BASE}/journeys?from=${encodeURIComponent(fromId)}&to=${encodeURIComponent(toId)}&${params.toString()}`;
+        const data = await fetchJSON(url);
+
+        const journeys = data.journeys || [];
+        state.journey.journeys = journeys;
+
+        setHidden($('#journey-loading'), true);
+
+        if (journeys.length === 0) {
+            $('#journey-error-msg').textContent = 'No journeys found. Try different locations or times.';
+            setHidden($('#journey-error'), false);
+            return;
+        }
+
+        renderJourneys(journeys);
+    } catch (e) {
+        console.error('Journey search failed:', e);
+        setHidden($('#journey-loading'), true);
+        $('#journey-error-msg').textContent = 'Failed to load journeys. Please try again.';
+        setHidden($('#journey-error'), false);
     }
-
-    renderJourneys(journeys);
-  } catch (e) {
-    console.error('Journey search failed:', e);
-    setHidden($('#journey-loading'), true);
-    $('#journey-error-msg').textContent = 'Failed to load journeys. Please try again.';
-    setHidden($('#journey-error'), false);
-  }
 };
 
 const renderJourneys = (journeys) => {
-  const container = $('#journeys-list');
-  container.innerHTML = '';
+    const container = $('#journeys-list');
+    container.innerHTML = '';
 
-  journeys.forEach((journey, index) => {
-    const card = createJourneyCard(journey, index);
-    container.appendChild(card);
-  });
+    journeys.forEach((journey, index) => {
+        const card = createJourneyCard(journey, index);
+        container.appendChild(card);
+    });
 };
 
 const createJourneyCard = (journey, index) => {
-  const card = document.createElement('div');
-  card.className = 'journey-card collapsed card bg-base-100 shadow-elevated';
-  card.dataset.index = index;
+    const card = document.createElement('div');
+    card.className = 'journey-card collapsed card bg-base-100 shadow-elevated';
+    card.dataset.index = index;
 
-  const firstLeg = journey.legs[0];
-  const lastLeg = journey.legs[journey.legs.length - 1];
+    const firstLeg = journey.legs[0];
+    const lastLeg = journey.legs[journey.legs.length - 1];
 
-  const departureTime = firstLeg?.departure || firstLeg?.plannedDeparture;
-  const arrivalTime = lastLeg?.arrival || lastLeg?.plannedArrival;
+    const departureTime = firstLeg?.departure || firstLeg?.plannedDeparture;
+    const arrivalTime = lastLeg?.arrival || lastLeg?.plannedArrival;
 
-  // Calculate departure delay
-  const departureDelay = firstLeg?.departureDelay ?? computeDelaySecs(firstLeg?.departure, firstLeg?.plannedDeparture);
-  const arrivalDelay = lastLeg?.arrivalDelay ?? computeDelaySecs(lastLeg?.arrival, lastLeg?.plannedArrival);
+    // Calculate departure delay
+    const departureDelay = firstLeg?.departureDelay ?? computeDelaySecs(firstLeg?.departure, firstLeg?.plannedDeparture);
+    const arrivalDelay = lastLeg?.arrivalDelay ?? computeDelaySecs(lastLeg?.arrival, lastLeg?.plannedArrival);
 
-  const duration = Math.round((new Date(arrivalTime) - new Date(departureTime)) / 60000);
-  const hours = Math.floor(duration / 60);
-  const minutes = duration % 60;
-  const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+    const duration = Math.round((new Date(arrivalTime) - new Date(departureTime)) / 60000);
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
+    const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
-  const transitLegs = journey.legs.filter(leg => leg.mode !== 'walking' && leg.line);
-  const transfers = Math.max(0, transitLegs.length - 1);
+    const transitLegs = journey.legs.filter(leg => leg.mode !== 'walking' && leg.line);
+    const transfers = Math.max(0, transitLegs.length - 1);
 
-  const lineBadges = journey.legs
-    .filter(leg => leg.line)
-    .map((leg, idx, arr) => {
-      const lineName = leg.line.name || leg.line.id || '?';
-      const badgeClass = productBadgeClass(leg.line);
-      const badge = `<div class="badge ${badgeClass} badge-sm gap-1">${escapeHtml(lineName)}</div>`;
-      const arrow = idx < arr.length - 1 ? '<span class="opacity-40 text-sm mx-0.5">›</span>' : '';
-      return badge + arrow;
-    })
-    .join('');
+    const lineBadges = journey.legs
+        .filter(leg => leg.line)
+        .map((leg, idx, arr) => {
+            const lineName = leg.line.name || leg.line.id || '?';
+            const badgeClass = productBadgeClass(leg.line);
+            const badge = `<div class="badge ${badgeClass} badge-sm gap-1">${escapeHtml(lineName)}</div>`;
+            const arrow = idx < arr.length - 1 ? '<span class="opacity-40 text-sm mx-0.5">›</span>' : '';
+            return badge + arrow;
+        })
+        .join('');
 
-  card.innerHTML = `
+    card.innerHTML = `
     <div class="card-body p-4 sm:p-5">
       <div class="flex items-center justify-between gap-3 mb-4">
         <div class="flex items-center gap-3 min-w-0 flex-1 flex-wrap">
@@ -1656,58 +1656,58 @@ const createJourneyCard = (journey, index) => {
     </div>
   `;
 
-  card.querySelector('.journey-expand-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
+    card.querySelector('.journey-expand-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
 
-    // Close all other expanded journey cards
-    const allCards = document.querySelectorAll('.journey-card');
-    allCards.forEach(otherCard => {
-      if (otherCard !== card && otherCard.classList.contains('expanded')) {
-        otherCard.classList.remove('expanded');
-        otherCard.classList.add('collapsed');
-      }
+        // Close all other expanded journey cards
+        const allCards = document.querySelectorAll('.journey-card');
+        allCards.forEach(otherCard => {
+            if (otherCard !== card && otherCard.classList.contains('expanded')) {
+                otherCard.classList.remove('expanded');
+                otherCard.classList.add('collapsed');
+            }
+        });
+
+        // Toggle current card
+        const wasCollapsed = card.classList.contains('collapsed');
+        card.classList.toggle('collapsed');
+        card.classList.toggle('expanded');
+
+        if (wasCollapsed) {
+            setTimeout(() => {
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+        }
     });
 
-    // Toggle current card
-    const wasCollapsed = card.classList.contains('collapsed');
-    card.classList.toggle('collapsed');
-    card.classList.toggle('expanded');
-
-    if (wasCollapsed) {
-      setTimeout(() => {
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 300);
-    }
-  });
-
-  return card;
+    return card;
 };
 
 const renderJourneyLegs = (legs) => {
-  return `<div class="mt-5 pt-5 border-t border-base-300">
+    return `<div class="mt-5 pt-5 border-t border-base-300">
     ${legs.map((leg, index) => {
-    const isWalking = leg.mode === 'walking' || !leg.line;
-    const departureTime = leg.departure || leg.plannedDeparture;
-    const arrivalTime = leg.arrival || leg.plannedArrival;
-    const isLastLeg = index === legs.length - 1;
+        const isWalking = leg.mode === 'walking' || !leg.line;
+        const departureTime = leg.departure || leg.plannedDeparture;
+        const arrivalTime = leg.arrival || leg.plannedArrival;
+        const isLastLeg = index === legs.length - 1;
 
-    if (isWalking) {
-      const prevLeg = index > 0 ? legs[index - 1] : null;
-      const nextLeg = index < legs.length - 1 ? legs[index + 1] : null;
-      const isTransfer = (prevLeg && (prevLeg.mode !== 'walking' && prevLeg.line)) &&
-        (nextLeg && (nextLeg.mode !== 'walking' && nextLeg.line));
+        if (isWalking) {
+            const prevLeg = index > 0 ? legs[index - 1] : null;
+            const nextLeg = index < legs.length - 1 ? legs[index + 1] : null;
+            const isTransfer = (prevLeg && (prevLeg.mode !== 'walking' && prevLeg.line)) &&
+                (nextLeg && (nextLeg.mode !== 'walking' && nextLeg.line));
 
-      if (isTransfer) {
-        // Calculate transfer time from previous leg's arrival to next leg's departure
-        let duration = 0;
-        const prevArrival = prevLeg.arrival || prevLeg.plannedArrival;
-        const nextDeparture = nextLeg.departure || nextLeg.plannedDeparture;
+            if (isTransfer) {
+                // Calculate transfer time from previous leg's arrival to next leg's departure
+                let duration = 0;
+                const prevArrival = prevLeg.arrival || prevLeg.plannedArrival;
+                const nextDeparture = nextLeg.departure || nextLeg.plannedDeparture;
 
-        if (prevArrival && nextDeparture) {
-          duration = Math.round((new Date(nextDeparture) - new Date(prevArrival)) / 60000);
-        }
+                if (prevArrival && nextDeparture) {
+                    duration = Math.round((new Date(nextDeparture) - new Date(prevArrival)) / 60000);
+                }
 
-        return `
+                return `
             <div class="flex items-center gap-3 pb-2 ${!isLastLeg ? 'mb-4 pb-4 border-b border-base-200' : ''}">
               <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
                 <div class="w-0.5 h-6 bg-base-300"></div>
@@ -1722,16 +1722,16 @@ const renderJourneyLegs = (legs) => {
               </div>
             </div>
           `;
-      }
+            }
 
-      let duration = 0;
-      if (departureTime && arrivalTime) {
-        const depTime = new Date(departureTime);
-        const arrTime = new Date(arrivalTime);
-        duration = Math.round((arrTime - depTime) / 60000);
-      }
+            let duration = 0;
+            if (departureTime && arrivalTime) {
+                const depTime = new Date(departureTime);
+                const arrTime = new Date(arrivalTime);
+                duration = Math.round((arrTime - depTime) / 60000);
+            }
 
-      return `
+            return `
           <div class="flex gap-3 pb-5 ${!isLastLeg ? 'mb-4 border-b border-base-200' : ''}">
             <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
               <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm bg-neutral-400 dark:bg-base-600"></div>
@@ -1760,21 +1760,21 @@ const renderJourneyLegs = (legs) => {
             </div>
           </div>
         `;
-    }
+        }
 
-    const lineName = leg.line?.name || leg.line?.id || '?';
-    const badgeClass = productBadgeClass(leg.line);
-    const direction = leg.direction || leg.destination?.name || '—';
-    const lineColor = extractLineColor(badgeClass);
-    // Calculate delays
-    const departureDelay = leg.departureDelay ?? computeDelaySecs(leg.departure, leg.plannedDeparture);
-    const arrivalDelay = leg.arrivalDelay ?? computeDelaySecs(leg.arrival, leg.plannedArrival);
+        const lineName = leg.line?.name || leg.line?.id || '?';
+        const badgeClass = productBadgeClass(leg.line);
+        const direction = leg.direction || leg.destination?.name || '—';
+        const lineColor = extractLineColor(badgeClass);
+        // Calculate delays
+        const departureDelay = leg.departureDelay ?? computeDelaySecs(leg.departure, leg.plannedDeparture);
+        const arrivalDelay = leg.arrivalDelay ?? computeDelaySecs(leg.arrival, leg.plannedArrival);
 
-    // Calculate number of stops (excluding destination)
-    const stopCount = leg.stopovers ? Math.max(0, leg.stopovers.length - 1) : null;
-    const stopText = stopCount !== null && stopCount > 0 ? `${stopCount} stop${stopCount > 1 ? 's' : ''}` : '';
+        // Calculate number of stops (excluding destination)
+        const stopCount = leg.stopovers ? Math.max(0, leg.stopovers.length - 1) : null;
+        const stopText = stopCount !== null && stopCount > 0 ? `${stopCount} stop${stopCount > 1 ? 's' : ''}` : '';
 
-    return `
+        return `
         <div class="flex gap-3 pb-5 ${!isLastLeg ? 'mb-4 border-b border-base-200' : ''}">
           <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
             <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: ${lineColor};"></div>
@@ -1815,7 +1815,7 @@ const renderJourneyLegs = (legs) => {
           </div>
         </div>
       `;
-  }).join('')}
+    }).join('')}
   </div>`;
 };
 
@@ -1824,13 +1824,13 @@ $('#journey-use-location')?.addEventListener('click', findNearbyForJourney);
 
 // Time picker handlers
 const setCurrentTime = () => {
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const timePicker = $('#journey-time-picker');
-  if (timePicker) {
-    timePicker.value = `${hours}:${minutes}`;
-  }
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const timePicker = $('#journey-time-picker');
+    if (timePicker) {
+        timePicker.value = `${hours}:${minutes}`;
+    }
 };
 
 $('#journey-time-now')?.addEventListener('click', setCurrentTime);
@@ -1854,11 +1854,11 @@ $('#dock-settings')?.addEventListener('click', () => switchView('settings'));
 
 // Settings theme toggle
 $('#settings-theme-toggle')?.addEventListener('change', () => {
-  const themeToggle = $('#theme-toggle');
-  if (themeToggle) {
-    themeToggle.checked = $('#settings-theme-toggle').checked;
-    themeToggle.dispatchEvent(new Event('change'));
-  }
+    const themeToggle = $('#theme-toggle');
+    if (themeToggle) {
+        themeToggle.checked = $('#settings-theme-toggle').checked;
+        themeToggle.dispatchEvent(new Event('change'));
+    }
 });
 
 document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -1869,35 +1869,35 @@ window.addEventListener('resize', updateTabIndicator);
 // ============================================================================
 
 const getStoredJSON = (key, fallback = null) => {
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
-  } catch (e) {
-    console.error(`Failed to parse localStorage key "${key}":`, e);
-    return fallback;
-  }
+    try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : fallback;
+    } catch (e) {
+        console.error(`Failed to parse localStorage key "${key}":`, e);
+        return fallback;
+    }
 };
 
 const setActiveTab = (containerSelector, tabSelector) => {
-  const container = $(containerSelector);
-  if (!container) return;
+    const container = $(containerSelector);
+    if (!container) return;
 
-  $$(containerSelector + ' .tab').forEach(el => el.classList.remove('tab-active'));
-  const tab = $(tabSelector);
-  if (tab) tab.classList.add('tab-active');
+    $$(containerSelector + ' .tab').forEach(el => el.classList.remove('tab-active'));
+    const tab = $(tabSelector);
+    if (tab) tab.classList.add('tab-active');
 };
 
 const syncThemeToggles = () => {
-  const headerToggle = $('#theme-toggle');
-  const settingsToggle = $('#settings-theme-toggle');
-  const themeLabel = $('#theme-label');
+    const headerToggle = $('#theme-toggle');
+    const settingsToggle = $('#settings-theme-toggle');
+    const themeLabel = $('#theme-label');
 
-  if (headerToggle && settingsToggle) {
-    settingsToggle.checked = headerToggle.checked;
-    if (themeLabel) {
-      themeLabel.textContent = headerToggle.checked ? 'Dark Mode' : 'Light Mode';
+    if (headerToggle && settingsToggle) {
+        settingsToggle.checked = headerToggle.checked;
+        if (themeLabel) {
+            themeLabel.textContent = headerToggle.checked ? 'Dark Mode' : 'Light Mode';
+        }
     }
-  }
 };
 
 const TAB_INDICATOR_DELAY = 50;
@@ -1907,78 +1907,78 @@ const TAB_INDICATOR_DELAY = 50;
 // ============================================================================
 
 (function init() {
-  const saveJourneyLocations = () => {
-    if (state.journey.origin) {
-      localStorage.setItem('journeyOrigin', JSON.stringify(state.journey.origin));
+    const saveJourneyLocations = () => {
+        if (state.journey.origin) {
+            localStorage.setItem('journeyOrigin', JSON.stringify(state.journey.origin));
+        }
+        if (state.journey.destination) {
+            localStorage.setItem('journeyDestination', JSON.stringify(state.journey.destination));
+        }
+    };
+
+    Object.defineProperty(state.journey, 'origin', {
+        get() { return this._origin; },
+        set(value) {
+            this._origin = value;
+            saveJourneyLocations();
+        }
+    });
+
+    Object.defineProperty(state.journey, 'destination', {
+        get() { return this._destination; },
+        set(value) {
+            this._destination = value;
+            saveJourneyLocations();
+        }
+    });
+
+    // Setup journey search listeners
+    setupJourneySearchListeners();
+
+    // Restore view preference
+    const savedView = localStorage.getItem('currentView') || 'journey';
+    switchView(savedView);
+
+    // Restore duration tab
+    const savedDuration = localStorage.getItem('selectedDuration') || '30';
+    setActiveTab('#duration-tabs', `#duration-tabs .tab[data-minutes="${savedDuration}"]`);
+
+    // Restore departure stop
+    const savedStop = getStoredJSON('selectedStop');
+    if (savedStop) {
+        selectStop(savedStop);
+        const searchInput = $('#search');
+        if (searchInput) searchInput.value = savedStop.name;
     }
-    if (state.journey.destination) {
-      localStorage.setItem('journeyDestination', JSON.stringify(state.journey.destination));
+
+    // Restore journey locations
+    const savedOrigin = getStoredJSON('journeyOrigin');
+    const savedDestination = getStoredJSON('journeyDestination');
+    const journeyOriginInput = $('#journey-origin');
+    const journeyDestinationInput = $('#journey-destination');
+
+    if (savedOrigin && journeyOriginInput) {
+        state.journey.origin = savedOrigin;
+        journeyOriginInput.value = savedOrigin.name;
+        journeySearchState.origin.prevValue = savedOrigin.name;
     }
-  };
 
-  Object.defineProperty(state.journey, 'origin', {
-    get() { return this._origin; },
-    set(value) {
-      this._origin = value;
-      saveJourneyLocations();
+    if (savedDestination && journeyDestinationInput) {
+        state.journey.destination = savedDestination;
+        journeyDestinationInput.value = savedDestination.name;
+        journeySearchState.destination.prevValue = savedDestination.name;
     }
-  });
 
-  Object.defineProperty(state.journey, 'destination', {
-    get() { return this._destination; },
-    set(value) {
-      this._destination = value;
-      saveJourneyLocations();
-    }
-  });
+    // Initialize theme
+    initTheme();
 
-  // Setup journey search listeners
-  setupJourneySearchListeners();
+    // Sync and setup theme toggles
+    syncThemeToggles();
+    $('#theme-toggle')?.addEventListener('change', syncThemeToggles);
 
-  // Restore view preference
-  const savedView = localStorage.getItem('currentView') || 'journey';
-  switchView(savedView);
+    // Start auto-refresh for departures
+    startFixedRefresh();
 
-  // Restore duration tab
-  const savedDuration = localStorage.getItem('selectedDuration') || '30';
-  setActiveTab('#duration-tabs', `#duration-tabs .tab[data-minutes="${savedDuration}"]`);
-
-  // Restore departure stop
-  const savedStop = getStoredJSON('selectedStop');
-  if (savedStop) {
-    selectStop(savedStop);
-    const searchInput = $('#search');
-    if (searchInput) searchInput.value = savedStop.name;
-  }
-
-  // Restore journey locations
-  const savedOrigin = getStoredJSON('journeyOrigin');
-  const savedDestination = getStoredJSON('journeyDestination');
-  const journeyOriginInput = $('#journey-origin');
-  const journeyDestinationInput = $('#journey-destination');
-
-  if (savedOrigin && journeyOriginInput) {
-    state.journey.origin = savedOrigin;
-    journeyOriginInput.value = savedOrigin.name;
-    journeySearchState.origin.prevValue = savedOrigin.name;
-  }
-
-  if (savedDestination && journeyDestinationInput) {
-    state.journey.destination = savedDestination;
-    journeyDestinationInput.value = savedDestination.name;
-    journeySearchState.destination.prevValue = savedDestination.name;
-  }
-
-  // Initialize theme
-  initTheme();
-
-  // Sync and setup theme toggles
-  syncThemeToggles();
-  $('#theme-toggle')?.addEventListener('change', syncThemeToggles);
-
-  // Start auto-refresh for departures
-  startFixedRefresh();
-
-  // Initialize tab indicator position
-  setTimeout(() => requestAnimationFrame(updateTabIndicator), TAB_INDICATOR_DELAY);
+    // Initialize tab indicator position
+    setTimeout(() => requestAnimationFrame(updateTabIndicator), TAB_INDICATOR_DELAY);
 })();
