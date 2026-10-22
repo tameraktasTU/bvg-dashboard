@@ -1,106 +1,80 @@
-<div align="center">
+﻿# BVG Dashboard
 
-# 🚉 BVG Dashboard
+Live departures, journey planning and vehicle radar for Berlin & Brandenburg. Built with Vue 3, Vite and Tailwind CSS v4.
 
-**Beautiful, realtime departures for Berlin/Brandenburg**
+[Live site](https://bvg.tameraktas.de) · [Transit API](https://v6.bvg.transport.rest/api.html)
 
-<br/>
+## Development
 
-<img alt="Tech" src="https://img.shields.io/badge/CDN%20Only-Tailwind%20v4%20%2B%20daisyUI%20v5-14b8a6?style=for-the-badge"/>
-<img alt="Data" src="https://img.shields.io/badge/Data-v6.bvg.transport.rest-3b82f6?style=for-the-badge"/>
-<img alt="Mode" src="https://img.shields.io/badge/Themes-Light%20%E2%97%8F%20Dark-8b5cf6?style=for-the-badge"/>
-<a href="https://bvg.tameraktas.de"><img alt="Live" src="https://img.shields.io/badge/Live%20Site-bvg.tameraktas.de-10b981?style=for-the-badge"/></a>
+Use Node.js 22.18+ or a current Node.js 24 release.
 
-</div>
-
-## ✨ Highlights
-
-- **Fast stop search** with type‑ahead suggestions (Enter/click to select)
-- **Nearby stops** via geolocation with distance display (when permitted)
-- **Clean departures board** — mobile‑optimized, compact, and accessible
-- **Time window tabs** (15m · 30m · 60m) with smooth sliding animation
-- **Journey planner** — search routes between any two stops with real-time delay info and visual timeline
-- **Live Radar** — real-time vehicle tracking on interactive map showing all vehicles from your 60-minute departure window
-- **Line overview modal** — click any departure to see full route with stopovers
-- **Smart delays** — visual indicators for late, early, or on-time departures
-- **Optimized API calls** — visibility-based auto-refresh, client-side filtering, and caching
-- **Dark/Light theme** toggle with persistence
-- **Local storage** — remembers your stop, journey locations, and time window preferences
-- **Pure HTML + JS + CSS** over CDNs — zero build tools, instant deployment
-
-## 🚀 Quick Start
-
-1. Download/clone this folder
-2. Open `index.html` in your browser
-3. Optional: serve locally for best results (geolocation typically requires HTTPS or `localhost`)
-
-Tip: If your browser blocks location, click the 📍 button after granting permission or choose a stop via search.
-
-## 🧭 Using the Dashboard
-
-- **Search**: Type to search for a stop, then select from the dropdown (Enter or click)
-- **Nearby**: Click the 📍 button to find and list stops near your location
-- **Time window**: Select 15, 30, or 60 minutes — preference is saved automatically
-- **Journey planner**: Use the "Journeys" tab to search routes between two stops with real-time delays and visual timeline
-- **Radar**: Click the 🎯 Radar button to view live vehicle positions on an interactive map
-- **View route**: Click on any departure to see the complete journey with all stopovers
-- **Refresh**: Click the refresh button or wait for automatic 30-second updates
-- **Theme**: Toggle light/dark mode in the top right — your choice persists across sessions
-
-## 🧩 Data & Endpoints
-
-Powered by **BVG Transport REST API v6** (`v6.bvg.transport.rest`)
-
-- **Real-time departures** with delay information
-- **Journey details** with complete stopover sequences
-- **Live vehicle positions** via radar endpoint
-- **Location-based search** for nearby transit stops
-- **Comprehensive stop database** across Berlin/Brandenburg
-
-## ⚙️ Behavior & Persistence
-
-- **Auto-refresh**: 30-second interval (pauses when tab is hidden to save API calls)
-- **Smart caching**: Fetches 60 minutes of data, filters client-side when switching time windows
-- **LocalStorage persistence**:
-  - Selected stop and station name
-  - Time window preference (15/30/60 min)
-  - Journey origin and destination (auto-restored when searching)
-  - Theme choice (light/dark)
-  - Current active view (Departures/Journeys/Settings)
-- **Accessibility**: ARIA labels and semantic HTML throughout
-- **Local time**: Updates every second in the footer
-
-## 🔎 Troubleshooting
-
-- **No departures**: ensure a stop is selected and the time window isn’t too short.
-- **Geolocation**: most browsers require HTTPS or `localhost`. If blocked, use search.
-- **Rate limiting**: the API may throttle excessive requests; keep the tab count modest.
-- **Time format**: uses your browser’s locale.
-
-## 📁 Project Structure
-
-```
-├── index.html      # Clean semantic HTML with accessibility attributes
-├── styles.css      # External CSS with custom animations and theme styles
-├── app.js          # Organized application logic with clear sections:
-│                   #   - DOM utilities and constants
-│                   #   - State management with caching
-│                   #   - API integration and optimization
-│                   #   - Search and geolocation features
-│                   #   - Departure rendering and modal system
-│                   #   - Journey planner with route visualization
-│                   #   - Live radar with vehicle tracking
-│                   #   - Theme management and persistence
-└── README.md       # This file
+```sh
+npm install
+npm run dev
 ```
 
----
+Open the local address printed by Vite. The application is now compiled with Vite; opening `index.html` directly is no longer supported.
 
-## 🙌 Credits
+```sh
+npm run build
+npm run preview
+```
 
-**Data**: [BVG Transport REST API v6](https://v6.bvg.transport.rest) by [transport.rest](https://transport.rest)  
-**Styling**: [Tailwind CSS v4](https://tailwindcss.com) + [daisyUI v5](https://daisyui.com)  
-**Maps**: [Leaflet v1.9.4](https://leafletjs.com) with OpenStreetMap tiles (light) and Esri Dark Gray Canvas tiles (dark)  
-**Icons**: Native emoji and Unicode characters
+The production site is generated in `dist/`.
 
-**Created by [Tamer Aktas](https://tameraktas.de)** • 2025
+## Features
+
+- Journey planning between stations, addresses and points of interest, with departure or arrival times and transport filters.
+- Expandable connections with walking routes, transfer times, platforms and realtime delays.
+- Live departures with 10, 20, 30, 45 and 60-minute windows. A single 60-minute response is filtered locally.
+- Full line overviews with stopovers and the selected station highlighted.
+- Nearby stops with distances when location access is permitted.
+- Lazy-loaded Leaflet radar showing vehicles that serve the selected stop, with next-stop information and recentering.
+- Mobile navigation dock, desktop navigation, light/dark themes and reduced-motion support.
+- Existing saved stations, journey endpoints, time window, theme and current view retained through the migration.
+
+Departures refresh every 30 seconds. Radar refreshes every 10 seconds while open. Refresh timers pause when the document is hidden; requests are cancelled when superseded or closed. Transit data and map tiles require a network connection. Location access requires HTTPS or localhost.
+
+## Checks
+
+```sh
+npm test
+npm run test:browser
+```
+
+Start the development server before the browser check. Browser QA defaults to `http://127.0.0.1:5173` and installed Microsoft Edge. Set `QA_BASE_URL` or `QA_BROWSER_CHANNEL` to use another preview or Playwright browser channel. The suite mocks transit responses for repeatable journey, departure, radar, persistence and failure checks, and captures screenshots in `.qa/`. Map tiles are requested from the real providers.
+
+The source uses four spaces, single quotes and semicolons for JavaScript, and two spaces for CSS.
+
+## Structure
+
+```text
+src/
+├── App.vue                     # Application shell and three views
+├── components/                 # Search, connection cards, line badges and dialogs
+├── composables/useTransit.js   # Reactive transit state, caching and request lifecycle
+├── lib/transit.js              # API helpers, route calculations and line identity
+├── lib/storage.js              # Safe, compatible browser persistence
+├── main.js                     # Vue entry point and bundled fonts
+└── styles.css                  # Tailwind tokens, base rules and interaction motion
+```
+
+The UI uses canonical Tailwind utilities and shared theme tokens. Line colors use complete static classes so the production compiler includes every variant. Only Leaflet's generated markup needs scoped integration styles. The map and its styles are loaded on first use.
+
+## Deployment
+
+The included GitHub Actions workflow runs the unit tests, builds the application and deploys `dist/` after pushes to `main` or a manual workflow run on `main`. Pull requests and manual runs on other branches run the checks without deploying. The workflow and production deployment must be verified in GitHub after pushing.
+
+In repository **Settings → Pages**, select **GitHub Actions** as the source and keep `bvg.tameraktas.de` as the custom domain. GitHub Actions deployments read the domain from these settings; a repository `CNAME` file is ignored and is not needed. Vite's default base path (`'/'`) supports this custom domain without extra configuration. If you switch to the default project URL at `https://tameraktasTU.github.io/BVG-Dashboard/`, set Vite's base to `'/BVG-Dashboard/'` before rebuilding.
+
+For another static host, upload the complete contents of `dist/`.
+
+## Credits
+
+Created by [Tamer Aktas](https://tameraktas.de). Independent project, not an official BVG application.
+
+- Transit data: [transport.rest](https://v6.bvg.transport.rest).
+- UI: [Vue](https://vuejs.org), [Tailwind CSS](https://tailwindcss.com), and locally bundled [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans).
+- Icons: [Tabler Icons](https://tabler.io/icons), licensed under MIT.
+- Maps: [Leaflet](https://leafletjs.com), [OpenStreetMap](https://www.openstreetmap.org/copyright) and Esri Dark Gray Canvas. Attribution remains on the map.
+- BVG brand mark: [theSVG catalog](https://thesvg.org/icon/bvg). The logo identifies the transit network; all brand rights remain with their owner.

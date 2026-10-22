@@ -1,0 +1,7 @@
+{
+    "editor.tabSize": 4,
+    "files.eol": "\n",
+    "[css]": {
+        "editor.tabSize": 2
+    }
+}
