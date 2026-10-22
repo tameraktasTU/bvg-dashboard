@@ -1,6 +1,8 @@
 <script setup>
 import {
     IconArrowRight,
+    IconArrowsExchange,
+    IconAlertTriangle,
     IconArrowsDownUp,
     IconCalendarEvent,
     IconCheck,
@@ -10,6 +12,7 @@ import {
     IconCurrentLocation,
     IconExternalLink,
     IconInfoCircle,
+    IconLayoutColumns,
     IconMoon,
     IconRadar,
     IconRefresh,
@@ -27,6 +30,9 @@ defineProps({
 });
 
 const icons = {
+    transfer: IconArrowsExchange,
+    alert: IconAlertTriangle,
+    platform: IconLayoutColumns,
     arrow: IconArrowRight,
     chevron: IconChevronRight,
     down: IconChevronDown,

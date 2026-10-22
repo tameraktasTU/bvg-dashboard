@@ -262,6 +262,10 @@ export const parseJourneys = (data) => {
                 plannedDeparturePlatform: validId(leg.plannedDeparturePlatform)
                     ? leg.plannedDeparturePlatform
                     : null,
+                arrivalPlatform: validId(leg.arrivalPlatform) ? leg.arrivalPlatform : null,
+                plannedArrivalPlatform: validId(leg.plannedArrivalPlatform)
+                    ? leg.plannedArrivalPlatform
+                    : null,
                 direction: hasText(leg.direction) ? leg.direction : null,
                 stopovers: normalizeStopovers(leg.stopovers)
             };

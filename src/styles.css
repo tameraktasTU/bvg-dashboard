@@ -89,6 +89,15 @@
   transform: translateY(4px);
 }
 
+.journey-detail-enter-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.journey-detail-enter-from {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

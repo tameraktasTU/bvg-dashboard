@@ -1,8 +1,10 @@
 <script setup>
 import { computed } from 'vue';
-import { formatTime, journeySummary, timestamp } from '../lib/transit.js';
+import { formatTime, journeySummary } from '../lib/transit.js';
+import { buildJourneyDetails } from '../lib/journeyDetails.js';
 import AppIcon from './AppIcon.vue';
 import LineBadge from './LineBadge.vue';
+import JourneyLeg from './JourneyLeg.vue';
 
 const props = defineProps({
     journey: { type: Object, required: true },
@@ -11,26 +13,23 @@ const props = defineProps({
 });
 defineEmits(['toggle']);
 const summary = computed(() => journeySummary(props.journey));
-const duration = (leg) =>
-    Math.max(
-        0,
-        Math.round(
-            (timestamp(leg.arrival || leg.plannedArrival) -
-                timestamp(leg.departure || leg.plannedDeparture)) /
-            60000
-        )
-    );
-const transferTime = (index) => {
-    const previous = props.journey.legs[index - 1];
-    const next = props.journey.legs[index + 1];
-    if (!previous || !next) return null;
-    const minutes = Math.round(
-        (timestamp(next.departure || next.plannedDeparture) -
-            timestamp(previous.arrival || previous.plannedArrival)) /
-        60000
-    );
-    return Number.isFinite(minutes) ? Math.max(0, minutes) : null;
+const details = computed(() => buildJourneyDetails(props.journey));
+const rideCount = computed(() => details.value.steps.filter((step) => step.type === 'ride').length);
+const distanceFormatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
+const formatDuration = (minutes) => {
+    if (!Number.isFinite(minutes)) return '—';
+    const seconds = Math.round(Math.abs(minutes) * 60);
+    const wholeMinutes = Math.floor(seconds / 60);
+    if (seconds === 0) return '0 min';
+    if (seconds < 60) return `${seconds} sec`;
+    if (seconds % 60) return `${wholeMinutes} min ${seconds % 60} sec`;
+    if (wholeMinutes >= 60) return `${Math.floor(wholeMinutes / 60)} h ${wholeMinutes % 60} min`;
+    return `${wholeMinutes} min`;
 };
+const formatDistance = (meters) => Number.isFinite(meters) && meters >= 0
+    ? meters >= 1000 ? `${distanceFormatter.format(meters / 1000)} km` : `${Math.round(meters)} m`
+    : '—';
+const platform = (leg, type) => leg[`${type}Platform`] ?? leg[`planned${type[0].toUpperCase()}${type.slice(1)}Platform`];
 </script>
 
 <template>
@@ -83,55 +82,87 @@ const transferTime = (index) => {
             </span>
         </button>
 
-        <div v-if="expanded" :id="`journey-detail-${index}`" class="border-t border-edge px-5 py-6 sm:px-6">
-            <ol class="space-y-6">
-                <li v-for="(leg, legIndex) in journey.legs" :key="legIndex"
-                    class="relative grid grid-cols-[3rem_1fr] gap-3 text-sm">
-                    <div class="text-right text-xs tabular-nums">
-                        {{ formatTime(leg.departure || leg.plannedDeparture) }}
-                        <span v-if="Math.abs(leg.departureDelay) >= 60" class="mt-1 block text-muted line-through">
-                            {{ formatTime(leg.plannedDeparture) }}
+        <Transition name="journey-detail">
+            <div
+                v-if="expanded"
+                :id="`journey-detail-${index}`"
+                data-journey-details
+                role="region"
+                :aria-label="`Journey ${index + 1} details`"
+                class="border-t border-edge px-4 py-5 sm:px-6 sm:py-6"
+            >
+                <div class="mb-6 flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="text-sm font-semibold">Your route</h3>
+                    <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                        <span v-if="rideCount">{{ rideCount }} {{ rideCount === 1 ? 'ride' : 'rides' }}</span>
+                        <span v-else>Walking route</span>
+                        <span v-if="details.walkingMinutes > 0" class="inline-flex items-center gap-1.5">
+                            <AppIcon name="walk" class="size-3.5" />
+                            {{ formatDuration(details.walkingMinutes) }} on foot
                         </span>
-                    </div>
-                    <div class="min-w-0 border-l-2 border-edge pl-5">
-                        <p class="font-medium">{{ leg.origin?.name || leg.origin?.address }}</p>
-                        <div v-if="leg.walking" class="my-3 flex flex-wrap items-center gap-2 text-muted">
-                            <AppIcon name="walk" class="size-4" />
-                            <span>Walk {{ duration(leg) }} min</span>
-                            <span v-if="transferTime(legIndex) !== null" class="text-xs">
-                                · {{ transferTime(legIndex) }} min to transfer
-                            </span>
-                        </div>
-                        <div v-else class="my-3 space-y-2">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <LineBadge :line="leg.line" />
-                                <span class="text-xs text-muted">
-                                    towards {{ leg.direction || leg.destination?.name }}
-                                </span>
+                    </p>
+                </div>
+                <ol class="space-y-5" aria-label="Journey itinerary">
+                    <li v-for="(step, stepIndex) in details.steps" :key="stepIndex" :data-journey-step="step.type">
+                        <div
+                            v-if="step.type === 'transfer'"
+                            data-journey-transfer
+                            class="rounded-xl bg-well p-3.5 sm:p-4"
+                        >
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="flex items-start gap-2 text-sm font-semibold">
+                                        <AppIcon name="transfer" class="mt-0.5 size-4 shrink-0" />
+                                        <span class="wrap-anywhere">Change at {{ step.previousLeg.destination?.name }}</span>
+                                    </p>
+                                    <div class="mt-2.5 flex flex-wrap items-center gap-2 pl-6" aria-label="Change lines">
+                                        <LineBadge :line="step.previousLeg.line" />
+                                        <AppIcon name="arrow" class="size-3.5 text-muted" />
+                                        <LineBadge :line="step.nextLeg.line" />
+                                    </div>
+                                </div>
+                                <div v-if="step.minutes != null && step.minutes >= 0" class="shrink-0 text-right tabular-nums">
+                                    <p class="text-lg font-medium tracking-tight">{{ formatDuration(step.minutes) }}</p>
+                                    <p class="mt-0.5 text-xs text-muted">to transfer</p>
+                                </div>
                             </div>
-                            <p class="text-xs text-muted">
-                                {{ duration(leg) }} min
-                                <span v-if="leg.stopovers?.length">
-                                    · {{ Math.max(0, leg.stopovers.length - 1) }} stops
-                                </span>
-                                <span v-if="leg.departurePlatform || leg.plannedDeparturePlatform">
-                                    · Platform
-                                    {{ leg.departurePlatform || leg.plannedDeparturePlatform }}
-                                </span>
+                            <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs">
+                                <p v-if="step.walkingLegs.length" class="flex flex-wrap items-center gap-1.5">
+                                    <AppIcon name="walk" class="size-4 text-muted" />
+                                    <span>Walk {{ formatDuration(step.walkingMinutes) }}</span>
+                                    <span v-if="step.distance != null" class="text-muted">· {{ formatDistance(step.distance) }}</span>
+                                </p>
+                                <p v-if="step.waitMinutes != null && step.waitMinutes >= 0" class="flex items-center gap-1.5">
+                                    <AppIcon name="clock" class="size-4 text-muted" />
+                                    Wait {{ formatDuration(step.waitMinutes) }}
+                                </p>
+                            </div>
+                            <p
+                                v-if="platform(step.previousLeg, 'arrival') != null || platform(step.nextLeg, 'departure') != null"
+                                class="mt-3 flex flex-wrap items-center gap-1.5 border-t border-edge pt-3 text-xs text-muted"
+                            >
+                                <AppIcon name="platform" class="size-4" />
+                                <span v-if="platform(step.previousLeg, 'arrival') != null && platform(step.nextLeg, 'departure') == null">Arrive at</span>
+                                <span v-if="platform(step.previousLeg, 'arrival') == null && platform(step.nextLeg, 'departure') != null">Board at</span>
+                                <span v-if="platform(step.previousLeg, 'arrival') != null">Platform {{ platform(step.previousLeg, 'arrival') }}</span>
+                                <AppIcon v-if="platform(step.previousLeg, 'arrival') != null && platform(step.nextLeg, 'departure') != null" name="arrow" class="size-3.5" />
+                                <span v-if="platform(step.nextLeg, 'departure') != null">Platform {{ platform(step.nextLeg, 'departure') }}</span>
+                            </p>
+                            <template v-for="(walk, walkIndex) in step.walkingLegs" :key="walkIndex">
+                                <p v-if="walk.origin?.name !== walk.destination?.name" class="mt-3 text-xs leading-relaxed text-muted wrap-anywhere">
+                                    Walk to {{ walk.destination?.name }}
+                                </p>
+                            </template>
+                            <p v-if="step.missed" class="mt-3 flex items-start gap-2 text-xs font-medium text-red-700 dark:text-red-300">
+                                <AppIcon name="alert" class="size-4 shrink-0" />
+                                <span v-if="step.nextLeg.reachable === false">Connection not reachable. Check another journey.</span>
+                                <span v-else>Transfer time is too short. Check another journey.</span>
                             </p>
                         </div>
-                        <p class="flex flex-wrap items-baseline justify-between gap-2 font-medium">
-                            <span>{{ leg.destination?.name || leg.destination?.address }}</span>
-                            <span class="shrink-0 text-xs font-normal tabular-nums">
-                                <s v-if="Math.abs(leg.arrivalDelay) >= 60" class="mr-1 text-muted">
-                                    {{ formatTime(leg.plannedArrival) }}
-                                </s>
-                                {{ formatTime(leg.arrival || leg.plannedArrival) }}
-                            </span>
-                        </p>
-                    </div>
-                </li>
-            </ol>
-        </div>
+                        <JourneyLeg v-else :step="step" :format-duration="formatDuration" :format-distance="formatDistance" />
+                    </li>
+                </ol>
+            </div>
+        </Transition>
     </article>
 </template>

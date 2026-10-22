@@ -106,7 +106,21 @@ function createFixtures() {
                 legs: [
                     transitLeg(stop, interchange, u5, 3, 12, {
                         plannedDeparture: time(1),
-                        departureDelay: 120
+                        departureDelay: 120,
+                        plannedDeparturePlatform: '4',
+                        stopovers: [
+                            { stop, departure: time(3), plannedDeparture: time(1), departureDelay: 120 },
+                            {
+                                stop: { id: '900100008', name: 'Museumsinsel' },
+                                arrival: time(7),
+                                plannedArrival: time(5),
+                                arrivalDelay: 120,
+                                departure: time(7),
+                                plannedDeparture: time(5),
+                                departureDelay: 120
+                            },
+                            { stop: interchange, arrival: time(12), plannedArrival: time(12) }
+                        ]
                     }),
                     {
                         origin: interchange,
@@ -125,6 +139,85 @@ function createFixtures() {
                 legs: [transitLeg(stop, destination, s3, 9, 34)]
             }
         ],
+        journeyVariants: {
+            samePlatform: [{
+                type: 'journey',
+                legs: [
+                    transitLeg(stop, interchange, u5, 3, 12),
+                    transitLeg(interchange, destination, s3, 16, 30, { departurePlatform: '2' })
+                ]
+            }],
+            differentPlatforms: [{
+                type: 'journey',
+                legs: [
+                    transitLeg(stop, interchange, u5, 3, 12),
+                    transitLeg(interchange, destination, s3, 16, 30, { departurePlatform: '7' })
+                ]
+            }],
+            accessWalks: [{
+                type: 'journey',
+                legs: [
+                    {
+                        origin: { type: 'location', name: 'Alexanderplatz entrance' },
+                        destination: stop,
+                        walking: true,
+                        distance: 120,
+                        departure: time(0),
+                        arrival: time(2)
+                    },
+                    transitLeg(stop, destination, s3, 3, 25),
+                    {
+                        origin: destination,
+                        destination: { type: 'location', name: 'Hardenbergplatz entrance' },
+                        walking: true,
+                        distance: 200,
+                        departure: time(25),
+                        arrival: time(29)
+                    }
+                ]
+            }],
+            missingFields: [{
+                type: 'journey',
+                legs: [
+                    transitLeg(stop, interchange, u5, 3, 12, {
+                        departure: undefined,
+                        arrival: undefined,
+                        departurePlatform: undefined,
+                        arrivalPlatform: undefined,
+                        stopovers: undefined
+                    }),
+                    {
+                        origin: interchange,
+                        destination: interchange,
+                        walking: true,
+                        plannedDeparture: time(12),
+                        plannedArrival: time(15)
+                    },
+                    transitLeg(interchange, destination, s3, 17, 30, {
+                        departurePlatform: undefined,
+                        arrivalPlatform: undefined,
+                        stopovers: undefined
+                    })
+                ]
+            }],
+            missedConnection: [{
+                type: 'journey',
+                legs: [
+                    transitLeg(stop, interchange, u5, 3, 19, {
+                        plannedArrival: time(12),
+                        arrivalDelay: 420
+                    }),
+                    transitLeg(interchange, destination, s3, 17, 30)
+                ]
+            }],
+            cancelledConnection: [{
+                type: 'journey',
+                legs: [
+                    transitLeg(stop, interchange, u5, 3, 12),
+                    transitLeg(interchange, destination, s3, 17, 30, { cancelled: true })
+                ]
+            }]
+        },
         trip: {
             id: 'mock-u5',
             line: u5,
@@ -195,7 +288,7 @@ async function mockApi(page) {
     const fixtures = createFixtures();
     const requests = [];
     const failures = { journeys: false, departures: false };
-    const variants = { longTrip: false };
+    const variants = { longTrip: false, journeys: null };
 
     await page.route('https://v6.bvg.transport.rest/**', async (route) => {
         const url = new URL(route.request().url());
@@ -227,7 +320,7 @@ async function mockApi(page) {
         if (url.pathname === '/journeys') {
             return failures.journeys
                 ? respond({ error: 'Fixture API unavailable' }, 503)
-                : respond({ journeys: fixtures.journeys });
+                : respond({ journeys: fixtures.journeyVariants[variants.journeys] || fixtures.journeys });
         }
         if (url.pathname.startsWith('/trips/')) {
             return respond({ trip: variants.longTrip ? fixtures.longTrip : fixtures.trip });
@@ -303,6 +396,35 @@ async function assertJourneyControlsAlignment(page) {
     });
     assert.ok(Math.abs(geometry.swapCenter - geometry.expectedSwapCenter) <= 1);
     assert.equal(geometry.originMarker, geometry.destinationMarker);
+}
+
+async function assertJourneyRailContrast(details, label) {
+    const colors = await details.locator('[data-journey-step="ride"] [data-journey-leg]').evaluateAll((legs) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        const context = canvas.getContext('2d');
+        const rgb = (color) => {
+            context.clearRect(0, 0, 1, 1);
+            context.fillStyle = color;
+            context.fillRect(0, 0, 1, 1);
+            return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3);
+        };
+        return legs.map((leg) => ({
+            rail: rgb(getComputedStyle(leg.querySelector('[aria-hidden="true"] > span')).backgroundColor),
+            surface: rgb(getComputedStyle(leg.closest('article')).backgroundColor)
+        }));
+    });
+    const luminance = (rgb) => rgb.map((value) => {
+        const channel = value / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    }).reduce((total, value, index) => total + value * [0.2126, 0.7152, 0.0722][index], 0);
+    const ratios = colors.map(({ rail, surface }) => {
+        const values = [luminance(rail), luminance(surface)].sort((first, second) => second - first);
+        return (values[0] + 0.05) / (values[1] + 0.05);
+    });
+    assert.ok(ratios.length > 0, 'Rail contrast requires an expanded ride.');
+    assert.ok(ratios.every((ratio) => ratio >= 3), `${label}: route rails require 3:1 contrast (${ratios.map((ratio) => ratio.toFixed(2)).join(', ')}).`);
+    return ratios;
 }
 
 async function assertTripTimelineGeometry(dialog) {
@@ -522,13 +644,65 @@ try {
     assert.doesNotMatch(await firstJourney.textContent(), /\b(?:AM|PM)\b/i);
     await firstJourney.click();
     await expect(firstJourney).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByText('Walk 3 min', { exact: true })).toBeVisible();
-    await expect(page.getByText(/5 min to transfer/)).toBeVisible();
+    const journeyDetails = page.getByRole('region', { name: 'Journey 1 details', exact: true });
+    const transfer = journeyDetails.locator('[data-journey-transfer]');
+    const journeyLegs = journeyDetails.locator('[data-journey-leg]');
+    await expect(transfer).toContainText(/5 min\s*to transfer/);
+    await expect(transfer.getByText('Walk 3 min', { exact: true })).toBeVisible();
+    await expect(transfer.getByText('Wait 2 min', { exact: true })).toBeVisible();
+    await expect(transfer).toContainText('180 m');
+    await expect(transfer.getByText('U5', { exact: true })).toBeVisible();
+    await expect(transfer.getByText('S3', { exact: true })).toBeVisible();
+    await expect(transfer.getByText('Platform 2', { exact: true })).toBeVisible();
+    await expect(transfer.getByText('Platform 1', { exact: true })).toBeVisible();
+    await expect(journeyLegs).toHaveCount(2);
+    await expect(journeyLegs.first().locator('[data-journey-origin]')).toContainText('Board here');
+    await expect(journeyLegs.first().locator('[data-journey-origin]')).toContainText('Platform 1');
+    await expect(journeyLegs.first().locator('[data-journey-origin]')).toContainText('was 4');
+    await expect(journeyLegs.first().locator('[data-journey-destination]')).toContainText('Get off here');
+    await expect(journeyLegs.first().locator('[data-journey-destination]')).toContainText('Platform 2');
+    await expect(journeyLegs.first().getByText('2 stops', { exact: true })).toBeVisible();
+    await expect(journeyLegs.first().getByText('2 min departure delay', { exact: true })).toBeVisible();
+    await expect(journeyLegs.first().locator('s')).toHaveCount(1);
+    const intermediateStops = journeyDetails.getByRole('list', { name: 'Intermediate stops', exact: true });
+    await expect(intermediateStops).not.toBeVisible();
+    await journeyDetails.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(intermediateStops).toBeVisible();
+    await expect(intermediateStops.getByText('Museumsinsel', { exact: true })).toBeVisible();
+    await journeyDetails.locator('summary').press('Enter');
+    await expect(intermediateStops).not.toBeVisible();
     await secondJourney.click();
     await expect(secondJourney).toHaveAttribute('aria-expanded', 'true');
     await expect(firstJourney).toHaveAttribute('aria-expanded', 'false');
     await firstJourney.click();
     await screenshot(page, 'desktop-journeys.png');
+
+    console.log('Expanded itineraries retain ride, platform, and transfer detail across responsive widths');
+    for (const viewport of [
+        { width: 1440, height: 1000, name: 'desktop' },
+        { width: 768, height: 1000, name: 'tablet' },
+        { width: 390, height: 844, name: 'mobile' },
+        { width: 320, height: 740, name: 'small-mobile' }
+    ]) {
+        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        await expect(journeyDetails).toBeVisible();
+        await expect(transfer.getByText('Wait 2 min', { exact: true })).toBeVisible();
+        await journeyDetails.locator('summary').evaluate((element) => { element.parentElement.open = true; });
+        await expect(intermediateStops.getByText('Museumsinsel', { exact: true })).toBeVisible();
+        await assertNoOverflow(page, `${viewport.name} expanded journey`);
+        await assertJourneyRailContrast(journeyDetails, `${viewport.name} light journey`);
+        if (viewport.width <= 390) {
+            assert.ok(await journeyDetails.locator('summary').evaluate((element) => element.getBoundingClientRect().height) >= 44,
+                'Intermediate-stop disclosures need a 44px mobile touch target.');
+        }
+        await page.evaluate(() => {
+            document.activeElement?.blur();
+            window.scrollTo(0, 0);
+        });
+        await screenshot(page, `${viewport.name}-journey-details.png`);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
 
     console.log('Journey API failure and recovery');
     api.failures.journeys = true;
@@ -540,6 +714,62 @@ try {
     api.failures.journeys = false;
     await searchButton.click();
     await expect(firstJourney).toBeVisible();
+
+    console.log('Direct transfers, access walks, missing details, cancellations, and missed connections stay honest');
+    const showJourneyVariant = async (name) => {
+        api.variants.journeys = name;
+        await Promise.all([
+            page.waitForResponse((response) => new URL(response.url()).pathname === '/journeys'),
+            searchButton.click()
+        ]);
+        await expect(journeyDetails).toHaveCount(0);
+        await expect(firstJourney).toBeVisible();
+        await firstJourney.click();
+        await expect(journeyDetails).toBeVisible();
+    };
+    await showJourneyVariant('samePlatform');
+    await expect(transfer).toHaveCount(1);
+    await expect(transfer).toContainText(/4 min\s*to transfer/);
+    await expect(transfer.getByText('Wait 4 min', { exact: true })).toBeVisible();
+    await expect(transfer.getByText('Platform 2', { exact: true })).toHaveCount(2);
+    await expect(transfer.getByText(/^Walk/)).toHaveCount(0);
+
+    await showJourneyVariant('differentPlatforms');
+    await expect(transfer).toHaveCount(1);
+    await expect(transfer.getByText('Platform 2', { exact: true })).toBeVisible();
+    await expect(transfer.getByText('Platform 7', { exact: true })).toBeVisible();
+    await expect(transfer.getByText(/^Walk/)).toHaveCount(0);
+
+    await showJourneyVariant('accessWalks');
+    await expect(transfer).toHaveCount(0);
+    await expect(journeyDetails.locator('[data-journey-step="walk"]')).toHaveCount(2);
+    await expect(journeyDetails.locator('[data-journey-step="ride"]')).toHaveCount(1);
+    await expect(journeyDetails.getByText('Walk 2 min', { exact: true })).toBeVisible();
+    await expect(journeyDetails.getByText('Walk 4 min', { exact: true })).toBeVisible();
+    await expect(journeyDetails.getByText('120 m', { exact: true })).toBeVisible();
+    await expect(journeyDetails.getByText('200 m', { exact: true })).toBeVisible();
+    await expect(journeyDetails.getByText('6 min on foot', { exact: true })).toBeVisible();
+
+    await showJourneyVariant('missingFields');
+    await expect(transfer).toHaveCount(1);
+    await expect(transfer.getByText('Walk 3 min', { exact: true })).toBeVisible();
+    await expect(transfer.getByText('Wait 2 min', { exact: true })).toBeVisible();
+    await expect(transfer.getByText(/180 m/)).toHaveCount(0);
+    await expect(journeyDetails.getByText(/Platform/)).toHaveCount(0);
+    await expect(journeyDetails.locator('summary')).toHaveCount(0);
+    assert.doesNotMatch(await journeyDetails.textContent(), /NaN|undefined|null|Invalid Date|\b(?:AM|PM)\b/);
+    await assertNoOverflow(page, 'Journey with missing details');
+
+    await showJourneyVariant('missedConnection');
+    await expect(transfer.getByText('Transfer time is too short. Check another journey.', { exact: true })).toBeVisible();
+    await expect(transfer.getByText(/^Wait/)).toHaveCount(0);
+    await expect(journeyLegs.first().locator('s')).toHaveCount(1);
+    await screenshot(page, 'journey-missed-connection.png');
+
+    await showJourneyVariant('cancelledConnection');
+    await expect(journeyDetails.getByText('This section is cancelled.', { exact: true })).toBeVisible();
+    await expect(firstJourney).toContainText('Connection cancelled');
+    await showJourneyVariant(null);
 
     console.log('Departure stop selection, grace filtering, and cached duration tabs');
     await navigate(page, 'Departures');
@@ -816,6 +1046,26 @@ try {
     await navigate(page, 'Journeys');
     await expect(originInput).toHaveValue(stop.name);
     await expect(destinationInput).toHaveValue(destination.name);
+    await searchButton.click();
+    await expect(firstJourney).toBeVisible();
+    await firstJourney.click();
+    await expect(journeyDetails).toBeVisible();
+    for (const viewport of [
+        { width: 1440, height: 1000, name: 'desktop' },
+        { width: 390, height: 844, name: 'mobile' }
+    ]) {
+        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        await expect(transfer.getByText('Wait 2 min', { exact: true })).toBeVisible();
+        await assertNoOverflow(page, `${viewport.name} dark expanded journey`);
+        const contrasts = await assertJourneyRailContrast(journeyDetails, `${viewport.name} dark journey`);
+        if (viewport.width === 1440) console.log(`Dark route-rail contrast: ${contrasts.map((ratio) => ratio.toFixed(2)).join(':1, ')}:1`);
+        await page.evaluate(() => {
+            document.activeElement?.blur();
+            window.scrollTo(0, 0);
+        });
+        await screenshot(page, `${viewport.name}-journey-details-dark.png`);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await navigate(page, 'Departures');
     await expect(stopInput).toHaveValue(stop.name);
     await expect(rows).toHaveCount(3);

@@ -373,6 +373,31 @@ test('every journey leg needs usable endpoint names and valid actual or planned 
     assert.equal(journeySummary(journey).cancelled, true);
 });
 
+test('journey arrival platforms discard malformed values while preserving platform zero', () => {
+    for (const platform of [undefined, null, '', '  ', {}, [], false, Infinity]) {
+        const [journey] = parseJourneys({
+            journeys: [{ legs: [{
+                ...validLeg(),
+                arrivalPlatform: platform,
+                plannedArrivalPlatform: platform
+            }] }]
+        });
+        assert.equal(journey.legs[0].arrivalPlatform, null);
+        assert.equal(journey.legs[0].plannedArrivalPlatform, null);
+    }
+    for (const platform of [0, '0', '3a']) {
+        const [journey] = parseJourneys({
+            journeys: [{ legs: [{
+                ...validLeg(),
+                arrivalPlatform: platform,
+                plannedArrivalPlatform: platform
+            }] }]
+        });
+        assert.equal(journey.legs[0].arrivalPlatform, platform);
+        assert.equal(journey.legs[0].plannedArrivalPlatform, platform);
+    }
+});
+
 test('malformed ancillary stopovers do not discard an otherwise valid journey', () => {
     const [journey] = parseJourneys({
         journeys: [

@@ -283,7 +283,8 @@ function switchView(view) {
                                 }}
                             </h2>
                             <span v-if="state.journey.journeys.length" class="text-xs text-muted">
-                                {{ state.journey.journeys.length }} connections
+                                {{ state.journey.journeys.length }}
+                                {{ state.journey.journeys.length === 1 ? 'connection' : 'connections' }}
                             </span>
                             <span v-else class="flex items-center gap-1.5 text-xs text-muted">
                                 <AppIcon name="route" class="size-3.5" />
