@@ -16,6 +16,8 @@ const active = ref(-1);
 const root = ref(null);
 const input = ref(null);
 const list = ref(null);
+const editing = ref(false);
+const draft = ref('');
 let blurTimer;
 const expanded = computed(() => props.search.open);
 
@@ -37,6 +39,7 @@ watch(active, (index) => {
 onBeforeUnmount(() => clearTimeout(blurTimer));
 
 function select(location) {
+    editing.value = false;
     emit('select', location);
     input.value?.blur();
 }
@@ -44,6 +47,7 @@ function select(location) {
 function onKeydown(event) {
     const count = props.search.results.length;
     if (event.key === 'Escape') {
+        editing.value = false;
         emit('close');
     } else if (expanded.value && count && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
         event.preventDefault();
@@ -55,17 +59,28 @@ function onKeydown(event) {
         event.preventDefault();
         if (count && !props.search.loading && !props.search.error)
             select(props.search.results[Math.max(0, active.value)]);
+    } else if (event.key === 'Enter') {
+        editing.value = false;
     }
 }
 
 function onBlur(event) {
     if (root.value?.contains(event.relatedTarget)) return;
+    editing.value = false;
     blurTimer = setTimeout(() => emit('close'), 150);
 }
 
 function onFocus() {
     clearTimeout(blurTimer);
-    if (props.search.query.length >= 2) emit('search', props.search.query);
+    if (editing.value) return;
+    editing.value = true;
+    draft.value = '';
+    emit('close');
+}
+
+function onInput(event) {
+    draft.value = event.target.value;
+    emit('search', draft.value);
 }
 
 function findNearby() {
@@ -85,9 +100,9 @@ function findNearby() {
             <input :id="id" ref="input" type="text" role="combobox" autocomplete="off" :aria-expanded="expanded"
                 :aria-controls="expanded ? `${id}-results` : undefined"
                 :aria-activedescendant="expanded && active >= 0 ? `${id}-option-${active}` : undefined" aria-autocomplete="list"
-                :placeholder="placeholder" :value="search.query"
+                :placeholder="placeholder" :value="editing ? draft : search.query"
                 class="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-ink outline-none placeholder:text-muted focus-visible:outline-none"
-                @input="emit('search', $event.target.value)" @keydown="onKeydown" @focus="onFocus" />
+                @input="onInput" @keydown="onKeydown" @focus="onFocus" @click="onFocus" />
             <button v-if="nearby" type="button"
                 class="-mr-2 grid size-10 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-well hover:text-ink"
                 :aria-label="`Use my location for ${label.toLowerCase()}`" title="Use my location" @pointerdown.prevent

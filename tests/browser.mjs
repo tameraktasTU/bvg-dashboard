@@ -565,6 +565,72 @@ async function checkLocationSearch() {
     await page.getByRole('option', { name: `${stop.name} Station`, exact: true }).getByRole('button').click();
     await expect(origin).toHaveValue(stop.name);
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('journeyOrigin')).id), stop.id);
+
+    console.log('Station fields clear on focus and restore unchanged selections without clearing saved endpoints');
+    const plannerHeading = page.getByRole('heading', { name: 'Plan a journey', exact: true });
+    const searchCountBeforeFocus = api.requests.filter((url) => url.pathname === '/locations').length;
+    for (const [field, station, storageKey] of [
+        [origin, stop, 'journeyOrigin'], [to, destination, 'journeyDestination']
+    ]) {
+        await field.click();
+        await expect(field).toHaveValue('');
+        assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).id, storageKey), station.id);
+        await plannerHeading.click();
+        await expect(field).toHaveValue(station.name);
+    }
+    assert.equal(api.requests.filter((url) => url.pathname === '/locations').length, searchCountBeforeFocus);
+
+    await origin.focus();
+    await expect(origin).toHaveValue('');
+    await origin.press('Tab');
+    await page.keyboard.press('Tab');
+    await expect(origin).toHaveValue(stop.name);
+    await expect(to).toBeFocused();
+    await expect(to).toHaveValue('');
+    await to.press('Tab');
+    await expect(to).toHaveValue(destination.name);
+
+    await origin.click();
+    await origin.press('Escape');
+    await expect(origin).toHaveValue(stop.name);
+    await origin.click();
+    await expect(origin).toHaveValue('');
+    await plannerHeading.click();
+    await expect(origin).toHaveValue(stop.name);
+
+    await origin.click();
+    const unchangedJourneyRequest = page.waitForRequest((request) => new URL(request.url()).pathname === '/journeys');
+    await origin.press('Enter');
+    const unchangedJourney = new URL((await unchangedJourneyRequest).url());
+    assert.equal(unchangedJourney.searchParams.get('from'), stop.id);
+    assert.equal(unchangedJourney.searchParams.get('to'), destination.id);
+    await expect(origin).toHaveValue(stop.name);
+
+    await origin.click();
+    await origin.pressSequentially('Zoo');
+    await expect(origin).toHaveValue('Zoo');
+    await plannerHeading.click();
+    await expect(origin).toHaveValue('Zoo');
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('journeyOrigin'))), null);
+    await origin.click();
+    await expect(origin).toHaveValue('');
+    await plannerHeading.click();
+    await expect(origin).toHaveValue('Zoo');
+    await origin.click();
+    await origin.pressSequentially('Zoo');
+    await page.getByRole('listbox', { name: 'From suggestions' })
+        .getByRole('option', { name: `${destination.name} Station`, exact: true }).getByRole('button').click();
+    await expect(origin).toHaveValue(destination.name);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('journeyOrigin')).id), destination.id);
+    await origin.click();
+    await plannerHeading.click();
+    await expect(origin).toHaveValue(destination.name);
+    await chooseLocation(page, origin, 'Alexander', stop.name);
+    await origin.click();
+    await navigate(page, 'Departures');
+    await navigate(page, 'Journeys');
+    await expect(origin).toHaveValue(stop.name);
+
     await origin.fill('A');
     await expect(options).toHaveCount(0);
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('journeyOrigin'))), null);
@@ -659,6 +725,11 @@ async function checkLocationSearch() {
     await navigate(page, 'Departures');
     const stopInput = page.getByRole('combobox', { name: /stop|station/i });
     await expect(stopInput).toHaveValue(stop.name);
+    await stopInput.click();
+    await expect(stopInput).toHaveValue('');
+    await page.getByRole('heading', { name: 'Find your stop', exact: true }).click();
+    await expect(stopInput).toHaveValue(stop.name);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('selectedStop')).id), stop.id);
     await stopInput.fill('Alexander');
     await expect(options).toHaveCount(1);
     await expect(options.first()).toContainText('Station');
