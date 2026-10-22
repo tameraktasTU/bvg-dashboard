@@ -195,18 +195,18 @@ function popup(content) {
 function createTileLayer() {
     return props.dark
         ? L.tileLayer(
-              'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-              {
-                  attribution:
-                      'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                  maxZoom: 16
-              }
-          )
+            'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+            {
+                attribution:
+                    'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 16
+            }
+        )
         : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution:
-                  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-              maxZoom: 19
-          });
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        });
 }
 
 function syncStopMarker() {
@@ -466,64 +466,36 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <dialog
-        id="radar-modal"
-        ref="dialog"
-        aria-labelledby="radar-title"
+    <dialog id="radar-modal" ref="dialog" aria-labelledby="radar-title"
         class="radar-dialog m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-6xl overflow-hidden rounded-2xl border-0 bg-panel p-0 text-ink shadow-2xl open:flex open:flex-col backdrop:bg-black/55"
-        @cancel.prevent="close"
-        @close="props.open && close()"
-        @click="$event.target === dialog && close()"
-    >
+        @cancel.prevent="close" @close="props.open && close()" @click="$event.target === dialog && close()">
         <header class="flex shrink-0 items-center justify-between gap-4 px-5 py-4 sm:px-7 sm:py-5">
             <div class="min-w-0">
-                <h2
-                    id="radar-title"
-                    class="flex items-center gap-2.5 text-xl font-semibold tracking-tight"
-                >
+                <h2 id="radar-title" class="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
                     <span
-                        class="size-2 shrink-0 rounded-full bg-green-600 motion-safe:animate-pulse dark:bg-green-400"
-                    ></span>
+                        class="size-2 shrink-0 rounded-full bg-green-600 motion-safe:animate-pulse dark:bg-green-400"></span>
                     Live radar
                 </h2>
                 <p class="mt-1 truncate text-sm text-muted">
                     {{ stop?.name || 'Vehicles around your stop' }}
                 </p>
             </div>
-            <button
-                type="button"
-                autofocus
+            <button type="button" autofocus
                 class="flex size-11 shrink-0 items-center justify-center rounded-full bg-black/5 transition-colors hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current dark:bg-white/5 dark:hover:bg-white/10"
-                aria-label="Close radar"
-                @click="close"
-            >
+                aria-label="Close radar" @click="close">
                 <AppIcon name="close" class="size-5" />
             </button>
         </header>
 
         <div class="relative h-[62dvh] min-h-24 shrink bg-well sm:h-[68dvh]">
-            <div
-                id="radar-map"
-                ref="mapElement"
-                class="radar-map h-full w-full"
-                role="region"
-                aria-label="Live vehicle locations near your selected stop"
-            ></div>
+            <div id="radar-map" ref="mapElement" class="radar-map h-full w-full" role="region"
+                aria-label="Live vehicle locations near your selected stop"></div>
 
-            <div
-                v-if="loading"
-                class="absolute inset-0 z-1000 flex items-center justify-center bg-panel/95"
-                role="status"
-            >
+            <div v-if="loading" class="absolute inset-0 z-1000 flex items-center justify-center bg-panel/95"
+                role="status">
                 <div class="flex items-center gap-3 text-sm">
-                    <svg
-                        class="size-5 motion-safe:animate-spin"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                        aria-hidden="true"
-                    >
+                    <svg class="size-5 motion-safe:animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.7" aria-hidden="true">
                         <circle cx="12" cy="12" r="9" opacity=".2" />
                         <path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round" />
                     </svg>
@@ -531,66 +503,47 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <div
-                v-else-if="error"
+            <div v-else-if="error"
                 class="absolute inset-x-4 bottom-10 z-1000 mx-auto max-w-md rounded-xl bg-panel p-4 shadow-lg"
-                role="alert"
-            >
+                role="alert">
                 <p class="text-sm font-medium">{{ error }}</p>
                 <p v-if="updatedLabel" class="mt-1 text-xs text-muted">
                     Last updated {{ updatedLabel }}
                 </p>
-                <button
-                    type="button"
+                <button type="button"
                     class="mt-2 min-h-11 text-sm font-semibold underline decoration-black/30 underline-offset-4 dark:decoration-white/30"
-                    @click="refresh(true)"
-                >
+                    @click="refresh(true)">
                     Try again
                 </button>
             </div>
 
-            <div
-                v-else-if="updatedAt && !vehicleCount"
+            <div v-else-if="updatedAt && !vehicleCount"
                 class="pointer-events-none absolute inset-x-4 bottom-10 z-1000 mx-auto max-w-sm rounded-xl bg-panel px-4 py-3 text-center text-sm shadow-lg"
-                role="status"
-            >
+                role="status">
                 No vehicles serving this stop are in range right now.
             </div>
 
-            <div
-                class="absolute top-4 right-4 z-1000 overflow-hidden rounded-xl bg-panel shadow-lg"
-            >
-                <button
-                    type="button"
+            <div class="absolute top-4 right-4 z-1000 overflow-hidden rounded-xl bg-panel shadow-lg">
+                <button type="button"
                     class="flex size-11 items-center justify-center text-xl transition-colors hover:bg-black/5 focus-visible:outline-2 focus-visible:-outline-offset-3 dark:hover:bg-white/10"
-                    aria-label="Zoom in"
-                    @click="map?.zoomIn()"
-                >
+                    aria-label="Zoom in" @click="map?.zoomIn()">
                     +
                 </button>
-                <button
-                    type="button"
+                <button type="button"
                     class="flex size-11 items-center justify-center border-t border-edge text-xl transition-colors hover:bg-black/5 focus-visible:outline-2 focus-visible:-outline-offset-3 dark:hover:bg-white/10"
-                    aria-label="Zoom out"
-                    @click="map?.zoomOut()"
-                >
+                    aria-label="Zoom out" @click="map?.zoomOut()">
                     −
                 </button>
-                <button
-                    type="button"
+                <button type="button"
                     class="flex size-11 items-center justify-center border-t border-edge transition-colors hover:bg-black/5 focus-visible:outline-2 focus-visible:-outline-offset-3 disabled:opacity-40 dark:hover:bg-white/10"
-                    aria-label="Recenter on your stop"
-                    :disabled="!hasLocation"
-                    @click="recenter()"
-                >
+                    aria-label="Recenter on your stop" :disabled="!hasLocation" @click="recenter()">
                     <AppIcon name="location" class="size-5" />
                 </button>
             </div>
         </div>
 
         <footer
-            class="flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 text-xs text-muted sm:px-7"
-        >
+            class="flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 text-xs text-muted sm:px-7">
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <span class="flex items-center gap-1.5">
                     <span class="size-2.5 rounded-full border border-ink bg-signal"></span>

@@ -1,32 +1,33 @@
 ﻿<!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta
-            name="description"
-            content="Live departures, journey planning and vehicle radar for Berlin & Brandenburg. Your independent companion for every U-Bahn, S-Bahn, tram and bus connection."
-        />
-        <meta name="theme-color" content="#f6f5f1" />
-        <title>BVG Dashboard · Berlin, on your terms.</title>
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <script>
-            try {
-                const theme = localStorage.getItem('theme');
-                document.documentElement.classList.toggle(
-                    'dark',
-                    theme === 'dark' ||
-                        (!['light', 'dark'].includes(theme) &&
-                            matchMedia('(prefers-color-scheme: dark)').matches)
-                );
-            } catch {}
-        </script>
-    </head>
-    <body>
-        <div id="app"></div>
-        <noscript>
-            This dashboard needs JavaScript to show live transit data and plan journeys.
-        </noscript>
-        <script type="module" src="/src/main.js"></script>
-    </body>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description"
+        content="Live departures, journey planning and vehicle radar for Berlin & Brandenburg. Your independent companion for every U-Bahn, S-Bahn, tram and bus connection." />
+    <meta name="theme-color" content="#f6f5f1" />
+    <title>BVG Dashboard · Berlin, on your terms.</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+        try {
+            const theme = localStorage.getItem('theme');
+            document.documentElement.classList.toggle(
+                'dark',
+                theme === 'dark' ||
+                (!['light', 'dark'].includes(theme) &&
+                    matchMedia('(prefers-color-scheme: dark)').matches)
+            );
+        } catch { }
+    </script>
+</head>
+
+<body>
+    <div id="app"></div>
+    <noscript>
+        This dashboard needs JavaScript to show live transit data and plan journeys.
+    </noscript>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
 </html>

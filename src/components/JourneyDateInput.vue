@@ -44,40 +44,16 @@ function selectDate(event) {
 </script>
 
 <template>
-    <div
-        class="relative flex h-11 min-w-0 items-center rounded-xl border border-edge bg-panel focus-within:border-ink"
-    >
-        <input
-            :id="id"
-            ref="textInput"
-            :value="draft"
-            type="text"
-            inputmode="text"
-            pattern="[0-9]{2}\.[0-9]{2}\.[0-9]{4}"
-            placeholder="TT.MM.JJJJ"
-            title="Date (DD.MM.YYYY)"
-            maxlength="10"
-            autocomplete="off"
-            required
-            class="h-full min-w-0 w-full rounded-xl bg-transparent pl-3 pr-10 text-sm tabular-nums"
-            @input="onInput"
-        />
-        <input
-            ref="picker"
-            :value="validDate(draft) ? modelValue : ''"
-            type="date"
-            tabindex="-1"
-            aria-hidden="true"
-            class="pointer-events-none absolute bottom-0 left-0 size-0 opacity-0"
-            @change="selectDate"
-        />
-        <button
-            type="button"
-            aria-label="Choose journey date"
-            title="Choose journey date"
+    <div class="relative flex h-11 min-w-0 items-center rounded-xl border border-edge bg-panel focus-within:border-ink">
+        <input :id="id" ref="textInput" :value="draft" type="text" inputmode="text"
+            pattern="[0-9]{2}\.[0-9]{2}\.[0-9]{4}" placeholder="TT.MM.JJJJ" title="Date (DD.MM.YYYY)" maxlength="10"
+            autocomplete="off" required
+            class="h-full min-w-0 w-full rounded-xl bg-transparent pl-3 pr-10 text-sm tabular-nums" @input="onInput" />
+        <input ref="picker" :value="validDate(draft) ? modelValue : ''" type="date" tabindex="-1" aria-hidden="true"
+            class="pointer-events-none absolute bottom-0 left-0 size-0 opacity-0" @change="selectDate" />
+        <button type="button" aria-label="Choose journey date" title="Choose journey date"
             class="absolute right-0 grid h-full w-10 place-items-center rounded-xl text-muted hover:text-ink"
-            @click="picker.showPicker ? picker.showPicker() : picker.click()"
-        >
+            @click="picker.showPicker ? picker.showPicker() : picker.click()">
             <AppIcon name="calendar" class="size-4" />
         </button>
     </div>

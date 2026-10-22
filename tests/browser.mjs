@@ -674,9 +674,9 @@ try {
         const bounds = await element.boundingBox();
         assert.ok(
             bounds.x >= radarBounds.x - 1 &&
-                bounds.y >= radarBounds.y - 1 &&
-                bounds.x + bounds.width <= radarBounds.x + radarBounds.width + 1 &&
-                bounds.y + bounds.height <= radarBounds.y + radarBounds.height + 1,
+            bounds.y >= radarBounds.y - 1 &&
+            bounds.x + bounds.width <= radarBounds.x + radarBounds.width + 1 &&
+            bounds.y + bounds.height <= radarBounds.y + radarBounds.height + 1,
             `Landscape radar ${name} must fit inside the dialog.`
         );
     }
