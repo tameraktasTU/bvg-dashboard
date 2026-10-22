@@ -13,16 +13,27 @@ const props = defineProps({
 
 const emit = defineEmits(['search', 'select', 'nearby', 'close']);
 const active = ref(-1);
+const root = ref(null);
 const input = ref(null);
+const list = ref(null);
 let blurTimer;
 const expanded = computed(() => props.search.open);
 
 watch(
-    () => props.search.results,
+    [() => props.search.results, expanded],
     () => {
         active.value = -1;
     }
 );
+watch(active, (index) => {
+    const option = list.value?.children[index];
+    const scroller = list.value?.parentElement;
+    if (!expanded.value || !option || !scroller) return;
+    const bounds = option.getBoundingClientRect();
+    const viewport = scroller.getBoundingClientRect();
+    if (bounds.top < viewport.top) scroller.scrollTop -= viewport.top - bounds.top;
+    else if (bounds.bottom > viewport.bottom) scroller.scrollTop += bounds.bottom - viewport.bottom;
+}, { flush: 'post' });
 onBeforeUnmount(() => clearTimeout(blurTimer));
 
 function select(location) {
@@ -34,16 +45,21 @@ function onKeydown(event) {
     const count = props.search.results.length;
     if (event.key === 'Escape') {
         emit('close');
-    } else if (count && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+    } else if (expanded.value && count && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
         event.preventDefault();
-        active.value = (active.value + (event.key === 'ArrowDown' ? 1 : -1) + count) % count;
-    } else if (event.key === 'Enter' && expanded.value && count) {
+        const down = event.key === 'ArrowDown';
+        active.value = active.value < 0
+            ? (down ? 0 : count - 1)
+            : (active.value + (down ? 1 : -1) + count) % count;
+    } else if (event.key === 'Enter' && expanded.value) {
         event.preventDefault();
-        select(props.search.results[Math.max(0, active.value)]);
+        if (count && !props.search.loading && !props.search.error)
+            select(props.search.results[Math.max(0, active.value)]);
     }
 }
 
-function onBlur() {
+function onBlur(event) {
+    if (root.value?.contains(event.relatedTarget)) return;
     blurTimer = setTimeout(() => emit('close'), 150);
 }
 
@@ -51,25 +67,31 @@ function onFocus() {
     clearTimeout(blurTimer);
     if (props.search.query.length >= 2) emit('search', props.search.query);
 }
+
+function findNearby() {
+    clearTimeout(blurTimer);
+    input.value?.focus();
+    emit('nearby');
+}
 </script>
 
 <template>
-    <div class="relative min-w-0">
+    <div ref="root" class="relative min-w-0" @focusout="onBlur">
         <label :for="id" class="mb-2 block text-sm font-medium">{{ label }}</label>
         <div
             class="flex min-h-13 items-center gap-3 rounded-xl border border-edge bg-panel px-4 transition-colors focus-within:border-ink">
             <span class="size-3 shrink-0 border-2 border-ink"
                 :class="marker === 'square' ? 'rounded-xs bg-signal' : 'rounded-full'" aria-hidden="true"></span>
             <input :id="id" ref="input" type="text" role="combobox" autocomplete="off" :aria-expanded="expanded"
-                :aria-controls="`${id}-results`"
-                :aria-activedescendant="active >= 0 ? `${id}-option-${active}` : undefined" aria-autocomplete="list"
+                :aria-controls="expanded ? `${id}-results` : undefined"
+                :aria-activedescendant="expanded && active >= 0 ? `${id}-option-${active}` : undefined" aria-autocomplete="list"
                 :placeholder="placeholder" :value="search.query"
                 class="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-ink outline-none placeholder:text-muted focus-visible:outline-none"
-                @input="emit('search', $event.target.value)" @keydown="onKeydown" @focus="onFocus" @blur="onBlur" />
+                @input="emit('search', $event.target.value)" @keydown="onKeydown" @focus="onFocus" />
             <button v-if="nearby" type="button"
                 class="-mr-2 grid size-10 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-well hover:text-ink"
                 :aria-label="`Use my location for ${label.toLowerCase()}`" title="Use my location" @pointerdown.prevent
-                @click="emit('nearby')">
+                @click="findNearby">
                 <AppIcon name="location" class="size-4.5" />
             </button>
         </div>
@@ -85,21 +107,21 @@ function onFocus() {
                     {{ search.error }}
                 </p>
                 <p v-else-if="!search.results.length" class="p-3 text-sm text-muted">
-                    No locations found. Try another name.
+                    No stations found. Try another name.
                 </p>
-                <ul :id="`${id}-results`" role="listbox" :aria-label="`${label} suggestions`">
+                <ul :id="`${id}-results`" ref="list" role="listbox" :aria-label="`${label} suggestions`">
                     <li v-for="(location, index) in search.results" :id="`${id}-option-${index}`"
-                        :key="location.id || `${location.latitude}-${location.longitude}-${index}`" role="option"
+                        :key="location.id" role="option"
                         :aria-selected="active === index">
                         <button type="button" tabindex="-1"
                             class="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition-colors hover:bg-well"
                             :class="active === index && 'bg-well'" @pointerdown.prevent @click="select(location)">
-                            <AppIcon :name="location.type === 'stop' ? 'departures' : 'location'"
-                                class="size-4 shrink-0 text-muted" />
-                            <span class="min-w-0 flex-1 wrap-break-word">
-                                {{ location.name || location.address }}
+                            <AppIcon name="departures" class="size-4 shrink-0 text-muted" />
+                            <span class="min-w-0 flex-1 wrap-anywhere">
+                                <span class="block">{{ location.name }}</span>
+                                <span class="mt-0.5 block text-xs text-muted">Station</span>
                             </span>
-                            <span v-if="Number.isFinite(location.distance)"
+                            <span v-if="Number.isFinite(location.distance) && location.distance >= 0"
                                 class="shrink-0 text-xs text-muted tabular-nums">
                                 {{ Math.round(location.distance) }} m
                             </span>

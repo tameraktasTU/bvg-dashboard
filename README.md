@@ -24,7 +24,8 @@ The production site is generated in `dist/`.
 
 ## Features
 
-- Journey planning between stations, addresses and points of interest, with departure or arrival times and transport filters.
+- Journey planning between stations, with departure or arrival times and transport filters.
+- Station-only search suggestions with duplicate filtering and keyboard navigation.
 - Expandable connections with coloured route timelines, walking and waiting times for transfers, platforms, intermediate stops and realtime delay/cancellation information when available.
 - Live departures with 10, 20, 30, 45 and 60-minute windows. A single 60-minute response is filtered locally.
 - Full line overviews with stopovers and the selected station highlighted.

@@ -14,6 +14,7 @@ import {
     validLocation
 } from '../lib/transit.js';
 import { readStorage, readStoredJSON, writeStorage, writeStoredJSON } from '../lib/storage.js';
+import { uniqueLocations } from '../lib/locationSearch.js';
 
 const REFRESH_INTERVAL_MS = 30000;
 const SEARCH_DEBOUNCE_MS = 350;
@@ -21,11 +22,12 @@ const DURATIONS = [10, 20, 30, 45, 60];
 const VIEWS = ['journey', 'departures', 'settings'];
 const SEARCH_FIELDS = ['stop', 'origin', 'destination'];
 
-const storedLocation = (key, stopOnly = false) => {
+const storedLocation = (key) => {
     const location = readStoredJSON(key);
     return validLocation(location) &&
-        (!stopOnly || (location.id !== undefined && location.id !== null))
-        ? normalizeLocation(location)
+        location.id !== undefined && location.id !== null &&
+        (location.type == null || location.type === 'stop')
+        ? { ...normalizeLocation(location), type: 'stop' }
         : null;
 };
 
@@ -38,7 +40,7 @@ const createSearch = (location) => ({
 });
 
 export const useTransit = () => {
-    const stop = storedLocation('selectedStop', true);
+    const stop = storedLocation('selectedStop');
     const origin = storedLocation('journeyOrigin');
     const destination = storedLocation('journeyDestination');
     const storedProducts = readStoredJSON('journeyProducts', {});
@@ -105,6 +107,7 @@ export const useTransit = () => {
 
     const setView = (view) => {
         if (!VIEWS.includes(view)) return;
+        SEARCH_FIELDS.forEach(closeSearch);
         state.currentView = view;
         writeStorage('currentView', view);
     };
@@ -160,7 +163,7 @@ export const useTransit = () => {
     };
 
     const selectStop = (location) => {
-        if (!validLocation(location) || location.id === undefined || location.id === null) return;
+        if (!validLocation(location) || location.type !== 'stop') return;
         departuresController?.abort();
         state.stop = normalizeLocation(location);
         state.departures = [];
@@ -172,7 +175,7 @@ export const useTransit = () => {
     };
 
     const selectLocation = (field, location) => {
-        if (!SEARCH_FIELDS.includes(field) || !validLocation(location)) return;
+        if (!SEARCH_FIELDS.includes(field) || !validLocation(location) || location.type !== 'stop') return;
         if (field === 'stop') {
             selectStop(location);
             return;
@@ -184,6 +187,7 @@ export const useTransit = () => {
 
     const searchLocations = (field, query) => {
         if (!SEARCH_FIELDS.includes(field) || disposed) return;
+        SEARCH_FIELDS.filter((other) => other !== field).forEach(closeSearch);
         const search = state.searches[field];
         search.query = query;
         if (field !== 'stop' && state.journey[field]?.name !== query) {
@@ -203,13 +207,12 @@ export const useTransit = () => {
         searchTimers[field] = setTimeout(async () => {
             const controller = new AbortController();
             searchControllers[field] = controller;
-            const journeySearch = field !== 'stop';
             const params = new URLSearchParams({
                 query: trimmed,
-                results: '8',
+                results: '20',
                 stops: 'true',
-                addresses: String(journeySearch),
-                poi: String(journeySearch),
+                addresses: 'false',
+                poi: 'false',
                 language: 'en',
                 pretty: 'false'
             });
@@ -220,11 +223,7 @@ export const useTransit = () => {
                 });
                 if (!Array.isArray(data)) throw new Error('Invalid location response.');
                 if (controller.signal.aborted || disposed) return;
-                search.results = data
-                    .filter(
-                        (item) => validLocation(item) && (journeySearch || item.type === 'stop')
-                    )
-                    .map(normalizeLocation);
+                search.results = uniqueLocations(data);
             } catch {
                 if (!controller.signal.aborted && !disposed)
                     search.error = 'Search is unavailable. Please try again.';
@@ -239,6 +238,7 @@ export const useTransit = () => {
 
     const findNearby = async (field = 'stop') => {
         if (!SEARCH_FIELDS.includes(field) || disposed) return;
+        SEARCH_FIELDS.filter((other) => other !== field).forEach(closeSearch);
         const search = state.searches[field];
         closeSearch(field);
         search.open = true;
@@ -266,7 +266,7 @@ export const useTransit = () => {
             const params = new URLSearchParams({
                 latitude: String(position.coords.latitude),
                 longitude: String(position.coords.longitude),
-                results: '8',
+                results: '20',
                 stops: 'true',
                 poi: 'false',
                 language: 'en',
@@ -277,9 +277,7 @@ export const useTransit = () => {
             });
             if (!Array.isArray(data)) throw new Error('Invalid nearby response.');
             if (controller.signal.aborted || disposed) return;
-            search.results = data
-                .filter((item) => validLocation(item) && item.type === 'stop')
-                .map(normalizeLocation);
+            search.results = uniqueLocations(data);
         } catch (error) {
             if (!controller.signal.aborted && !disposed) {
                 search.error =

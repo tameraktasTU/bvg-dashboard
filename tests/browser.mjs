@@ -288,7 +288,7 @@ async function mockApi(page) {
     const fixtures = createFixtures();
     const requests = [];
     const failures = { journeys: false, departures: false };
-    const variants = { longTrip: false, journeys: null };
+    const variants = { longTrip: false, journeys: null, locations: null, nearby: null, locationDelay: 0 };
 
     await page.route('https://v6.bvg.transport.rest/**', async (route) => {
         const url = new URL(route.request().url());
@@ -301,12 +301,18 @@ async function mockApi(page) {
             });
 
         if (url.pathname === '/locations/nearby') {
-            return respond([
+            return respond(variants.nearby || [
                 { ...stop, distance: 120 },
                 { ...destination, distance: 420 }
             ]);
         }
         if (url.pathname === '/locations') {
+            if (variants.locations) {
+                const data = variants.locations;
+                if (variants.locationDelay)
+                    await new Promise((resolve) => setTimeout(resolve, variants.locationDelay));
+                return respond(data);
+            }
             const query = (url.searchParams.get('query') || '').toLowerCase();
             if (query.includes('zoo')) return respond([destination]);
             if (query.includes('alex')) return respond([stop]);
@@ -345,7 +351,7 @@ async function navigate(page, name) {
 
 async function chooseLocation(page, input, query, name) {
     await input.fill(query);
-    await page.getByRole('option', { name, exact: true }).getByRole('button').click();
+    await page.getByRole('option', { name: `${name} Station`, exact: true }).getByRole('button').click();
     await expect(input).toHaveValue(name);
 }
 
@@ -507,7 +513,164 @@ async function screenshot(page, filename, fullPage = true) {
     });
 }
 
+async function checkLocationSearch() {
+    console.log('All searches show only stations, deduplicate records and handle keyboard navigation');
+    const context = await browser.newContext({
+        viewport: { width: 390, height: 844 }, reducedMotion: 'reduce',
+        geolocation: { latitude: 52.5215, longitude: 13.4113 }, permissions: ['geolocation']
+    });
+    const page = await context.newPage();
+    activePage = page;
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    const api = await mockApi(page);
+    const place = { type: 'location', poi: true, id: 'place', name: stop.name, latitude: 52.5215, longitude: 13.4113 };
+    api.variants.locations = [
+        stop, { ...stop },
+        { ...stop, location: { latitude: 52.52151, longitude: 13.4113 } },
+        place, { ...place, id: 'second-place-pin', latitude: 52.5225 },
+        { ...place, id: null, poi: false }, destination, null, {}
+    ];
+    await page.addInitScript(({ stop, place }) => {
+        localStorage.setItem('journeyOrigin', JSON.stringify(place));
+        localStorage.setItem('journeyDestination', JSON.stringify({ ...place, poi: false }));
+        const { type, ...legacyStop } = stop;
+        localStorage.setItem('selectedStop', JSON.stringify(legacyStop));
+    }, { stop, place });
+    await page.goto(baseUrl);
+    const origin = page.getByRole('combobox', { name: 'From', exact: true });
+    const to = page.getByRole('combobox', { name: 'To', exact: true });
+    const options = page.getByRole('listbox').getByRole('option');
+    await expect(origin).toHaveValue('');
+    await expect(to).toHaveValue('');
+    await to.fill('Destination');
+    await expect(options).toHaveCount(2);
+    const destinationRequest = api.requests.filter((url) => url.pathname === '/locations').at(-1);
+    assert.equal(destinationRequest.searchParams.get('addresses'), 'false');
+    assert.equal(destinationRequest.searchParams.get('poi'), 'false');
+    await options.last().getByRole('button').click();
+    await origin.fill('Alexander');
+    await expect(page.getByRole('listbox', { name: 'From suggestions' }).getByRole('option')).toHaveCount(2);
+    await expect(page.getByRole('option', { name: `${stop.name} Station`, exact: true })).toBeVisible();
+    const originRequest = api.requests.filter((url) => url.pathname === '/locations').at(-1);
+    assert.equal(originRequest.searchParams.get('results'), '20');
+    assert.equal(originRequest.searchParams.get('addresses'), 'false');
+    assert.equal(originRequest.searchParams.get('poi'), 'false');
+    for (const width of [1440, 768, 390, 320]) {
+        await page.setViewportSize({ width, height: 844 });
+        await assertNoOverflow(page, `${width}px station suggestions`);
+        await screenshot(page, `station-search-${width}.png`, false);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('option', { name: `${stop.name} Station`, exact: true }).getByRole('button').click();
+    await expect(origin).toHaveValue(stop.name);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('journeyOrigin')).id), stop.id);
+    await origin.fill('A');
+    await expect(options).toHaveCount(0);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('journeyOrigin'))), null);
+
+    api.variants.locations = Array.from({ length: 10 }, (_, index) => ({
+        ...stop, id: `keyboard-${index}`, name: `Station ${index + 1}`
+    }));
+    await origin.fill('Stations');
+    await expect(options).toHaveCount(8);
+    const beforeScroll = await page.evaluate(() => window.scrollY);
+    await origin.press('ArrowUp');
+    await expect(origin).toHaveAttribute('aria-activedescendant', 'journey-origin-option-7');
+    const geometry = await options.last().evaluate((option) => {
+        const bounds = option.getBoundingClientRect();
+        const scroller = option.parentElement.parentElement.getBoundingClientRect();
+        return { top: bounds.top, bottom: bounds.bottom, min: scroller.top, max: scroller.bottom };
+    });
+    assert.ok(geometry.top >= geometry.min - 1 && geometry.bottom <= geometry.max + 1);
+    assert.equal(await page.evaluate(() => window.scrollY), beforeScroll, 'Arrow keys should scroll only suggestions.');
+    await origin.press('ArrowDown');
+    await expect(origin).toHaveAttribute('aria-activedescendant', 'journey-origin-option-0');
+    await origin.press('Escape');
+    await expect(origin).toHaveAttribute('aria-expanded', 'false');
+    await expect(origin).not.toHaveAttribute('aria-activedescendant');
+    await origin.press('ArrowUp');
+    await expect(origin).not.toHaveAttribute('aria-activedescendant');
+    await origin.fill('Stations again');
+    await expect(options).toHaveCount(8);
+    await origin.press('ArrowUp');
+    await origin.press('Enter');
+    await expect(origin).toHaveValue('Station 8');
+
+    await origin.fill('Origin search');
+    await expect(origin).toHaveAttribute('aria-expanded', 'true');
+    await to.fill('Destination search');
+    await expect(to).toHaveAttribute('aria-expanded', 'true');
+    await expect(origin).toHaveAttribute('aria-expanded', 'false');
+    await navigate(page, 'Departures');
+    await navigate(page, 'Journeys');
+    await expect(options).toHaveCount(0);
+
+    api.variants.nearby = [{ ...stop, distance: 120 }, { ...stop, distance: 125 }, place, { ...destination, distance: 420 }];
+    await page.getByRole('button', { name: 'Use my location for from' }).click();
+    await expect(options).toHaveCount(2);
+    await expect(options.first()).toContainText('120 m');
+    await options.first().getByRole('button').click();
+    await expect(origin).toHaveValue(stop.name);
+
+    await origin.focus();
+    await origin.press('Tab');
+    const nearbyButton = page.getByRole('button', { name: 'Use my location for from' });
+    await expect(nearbyButton).toBeFocused();
+    await nearbyButton.press('Enter');
+    await expect(origin).toBeFocused();
+    await expect(options).toHaveCount(2);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await expect(options).toHaveCount(2);
+
+    console.log('Older search requests cannot replace a newer query or reopen a dismissed dropdown');
+    api.variants.locations = [stop];
+    api.variants.locationDelay = 700;
+    const oldRequest = page.waitForRequest((request) => new URL(request.url()).searchParams.get('query') === 'Older');
+    await origin.fill('Older');
+    await oldRequest;
+    api.variants.locations = [destination];
+    api.variants.locationDelay = 0;
+    await origin.fill('Newer');
+    await expect(options).toHaveCount(1);
+    await expect(options.first()).toContainText(destination.name);
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    await expect(options.first()).toContainText(destination.name);
+    api.variants.locationDelay = 700;
+    const dismissed = page.waitForRequest((request) => new URL(request.url()).searchParams.get('query') === 'Dismissed');
+    await origin.fill('Dismissed');
+    await dismissed;
+    await origin.press('Enter');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await origin.press('Escape');
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    await expect(origin).toHaveAttribute('aria-expanded', 'false');
+    await expect(options).toHaveCount(0);
+
+    api.variants.locations = [];
+    api.variants.locationDelay = 0;
+    await origin.fill('Nothing found');
+    await expect(page.getByText('No stations found. Try another name.', { exact: true })).toBeVisible();
+    await origin.press('Enter');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+
+    api.variants.locationDelay = 0;
+    api.variants.locations = [place, stop, { ...stop }];
+    await navigate(page, 'Departures');
+    const stopInput = page.getByRole('combobox', { name: /stop|station/i });
+    await expect(stopInput).toHaveValue(stop.name);
+    await stopInput.fill('Alexander');
+    await expect(options).toHaveCount(1);
+    await expect(options.first()).toContainText('Station');
+    const searchRequest = api.requests.filter((url) => url.pathname === '/locations').at(-1);
+    assert.equal(searchRequest.searchParams.get('addresses'), 'false');
+    assert.equal(searchRequest.searchParams.get('poi'), 'false');
+    assert.deepEqual(errors, []);
+    await context.close();
+}
+
 try {
+    await checkLocationSearch();
     const context = await browser.newContext({
         viewport: { width: 1440, height: 1000 },
         locale: 'en-US',
