@@ -288,7 +288,7 @@ async function mockApi(page) {
     const fixtures = createFixtures();
     const requests = [];
     const failures = { journeys: false, departures: false };
-    const variants = { longTrip: false, journeys: null, locations: null, nearby: null, locationDelay: 0 };
+    const variants = { longTrip: false, journeys: null, departures: null, locations: null, nearby: null, locationDelay: 0 };
 
     await page.route('https://v6.bvg.transport.rest/**', async (route) => {
         const url = new URL(route.request().url());
@@ -321,7 +321,7 @@ async function mockApi(page) {
         if (/\/stops\/[^/]+\/departures$/.test(url.pathname)) {
             return failures.departures
                 ? respond({ error: 'Fixture API unavailable' }, 503)
-                : respond({ departures: fixtures.departures });
+                : respond({ departures: variants.departures || fixtures.departures });
         }
         if (url.pathname === '/journeys') {
             return failures.journeys
@@ -740,7 +740,66 @@ async function checkLocationSearch() {
     await context.close();
 }
 
+async function checkDepartureBadges() {
+    console.log('Departure columns accommodate longer ICE and regional badges without overlap');
+    const context = await browser.newContext({
+        viewport: { width: 1440, height: 1000 }, colorScheme: 'light', reducedMotion: 'reduce'
+    });
+    const page = await context.newPage();
+    activePage = page;
+    const api = await mockApi(page);
+    api.variants.departures = ['U5', 'ICE 646', 'ICE 1007', 'RE 3138'].map((name, index) => ({
+        tripId: `badge-${index}`, stop, line: { name, product: name.startsWith('ICE') ? 'express' : 'regional' },
+        direction: 'Essen, Hauptbahnhof', when: new Date(Date.now() + 120000).toISOString(),
+        plannedWhen: new Date(Date.now() + 60000).toISOString(), delay: 60, platform: '7'
+    }));
+    await page.addInitScript((stop) => {
+        localStorage.setItem('selectedStop', JSON.stringify(stop));
+        localStorage.setItem('currentView', 'departures');
+    }, stop);
+    await page.goto(baseUrl);
+    const table = page.getByRole('table', { name: 'Departures', exact: true });
+    await expect(table.locator('tbody tr')).toHaveCount(4);
+    await page.evaluate(() => document.fonts.ready);
+    for (const theme of ['light', 'dark']) {
+        if (theme === 'dark') {
+            await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
+            await expect(page.locator('body')).toHaveCSS('color', 'rgb(244, 244, 240)');
+        }
+        for (const width of [1440, 1024, 768, 390, 320]) {
+            await page.setViewportSize({ width, height: 1000 });
+            await assertNoOverflow(page, `${width}px ${theme} long departure badges`);
+            const rows = await table.locator('tbody tr').evaluateAll((rows) => rows.map((row) => {
+                const badge = row.cells[0].firstElementChild.getBoundingClientRect();
+                const lineCell = row.cells[0].getBoundingClientRect();
+                const destination = row.cells[1].firstElementChild;
+                const text = destination.firstChild;
+                const word = document.createRange();
+                const start = text.textContent.indexOf('Hauptbahnhof');
+                word.setStart(text, start);
+                word.setEnd(text, start + 'Hauptbahnhof'.length);
+                return {
+                    line: row.cells[0].textContent.trim(), gap: destination.getBoundingClientRect().left - badge.right,
+                    contained: badge.right <= lineCell.right + 0.5,
+                    wrapped: destination.scrollWidth <= destination.clientWidth,
+                    wordLines: word.getClientRects().length
+                };
+            }));
+            for (const row of rows) {
+                assert.ok(row.gap >= 11.5, `${row.line} needs a 12px gap before its destination at ${width}px.`);
+                assert.ok(row.contained, `${row.line} must fit its column.`);
+                assert.ok(row.wrapped, 'Destination text must wrap within the available space.');
+                assert.equal(row.wordLines, 1, `${row.line}: Hauptbahnhof should wrap as a whole word at ${width}px.`);
+            }
+            if ([1440, 320].includes(width))
+                await table.screenshot({ path: fileURLToPath(new URL(`departure-badges-${theme}-${width}.png`, screenshotDirectory)) });
+        }
+    }
+    await context.close();
+}
+
 try {
+    await checkDepartureBadges();
     await checkLocationSearch();
     const context = await browser.newContext({
         viewport: { width: 1440, height: 1000 },

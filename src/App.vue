@@ -457,15 +457,16 @@ function switchView(view) {
                             Updating departures…
                         </p>
                         <template v-else-if="filteredDepartures.length">
-                            <table class="w-full table-fixed text-sm" aria-label="Departures">
+                            <table class="w-full table-auto text-sm" aria-label="Departures">
                                 <thead>
                                     <tr class="text-xs font-normal text-muted">
-                                        <th class="w-17 py-4 pl-5 text-left font-normal sm:pl-6">
+                                        <th class="w-px py-4 pl-5 text-left font-normal whitespace-nowrap sm:pl-6">
                                             Line
                                         </th>
                                         <th class="py-4 pl-3 text-left font-normal">Destination</th>
-                                        <th class="w-20 py-4 pr-5 text-right font-normal sm:pr-6">
-                                            Departure
+                                        <th class="w-17 py-4 pr-5 text-right font-normal sm:w-20 sm:pr-6">
+                                            <span class="sm:hidden">Time</span>
+                                            <span class="hidden sm:inline">Departure</span>
                                         </th>
                                     </tr>
                                 </thead>
@@ -477,7 +478,7 @@ function switchView(view) {
                                         <td class="py-4 pl-5 align-top sm:pl-6">
                                             <LineBadge :line="departure.line" />
                                         </td>
-                                        <td class="min-w-0 py-4 pr-2 pl-3">
+                                        <td class="min-w-0 py-4 pr-2 pl-3 wrap-anywhere">
                                             <button type="button"
                                                 class="w-full rounded-xs text-left text-sm font-medium"
                                                 :aria-label="`View ${departure.line?.name || 'line'} to ${departure.direction || 'destination'} route`"
@@ -598,40 +599,56 @@ function switchView(view) {
                         <div class="md:col-span-5">
                             <h2 class="text-base font-semibold">About the dashboard</h2>
                             <p class="mt-2 max-w-xs text-sm leading-relaxed text-muted">
-                                An independent companion for getting around Berlin & Brandenburg.
+                                An independent project by Tamer Aktas. Not affiliated with, endorsed by
+                                or operated by Berliner Verkehrsbetriebe (BVG).
                             </p>
                         </div>
-                        <dl class="divide-y divide-edge rounded-2xl bg-well px-5 sm:px-6 md:col-span-7">
-                            <div class="flex justify-between gap-4 py-5 text-sm">
-                                <dt class="text-muted">Made by</dt>
-                                <dd>
-                                    <a href="https://tameraktas.de" target="_blank" rel="noopener noreferrer"
-                                        class="inline-flex items-center gap-2 hover:underline">
-                                        Tamer Aktas
-                                        <AppIcon name="external" class="size-3.5" />
-                                    </a>
-                                </dd>
+                        <div class="min-w-0 rounded-2xl bg-well px-5 sm:px-6 md:col-span-7">
+                            <dl class="divide-y divide-edge">
+                                <div class="flex justify-between gap-4 py-5 text-sm">
+                                    <dt class="text-muted">Made by</dt>
+                                    <dd>
+                                        <a href="https://tameraktas.de" target="_blank" rel="noopener noreferrer"
+                                            class="inline-flex items-center gap-2 hover:underline">
+                                            Tamer Aktas
+                                            <AppIcon name="external" class="size-3.5" />
+                                        </a>
+                                    </dd>
+                                </div>
+                                <div class="flex justify-between gap-4 py-5 text-sm">
+                                    <dt class="text-muted">Transit data</dt>
+                                    <dd>
+                                        <a href="https://v6.bvg.transport.rest" target="_blank" rel="noopener noreferrer"
+                                            class="inline-flex items-center gap-2 hover:underline">
+                                            transport.rest
+                                            <AppIcon name="external" class="size-3.5" />
+                                        </a>
+                                    </dd>
+                                </div>
+                                <div class="flex justify-between gap-4 py-5 text-sm">
+                                    <dt class="text-muted">Built with</dt>
+                                    <dd class="text-right">Vue 3 & Tailwind CSS</dd>
+                                </div>
+                            </dl>
+                            <div class="border-t border-edge py-5">
+                                <h3 class="text-sm font-medium">Information & rights</h3>
+                                <p class="mt-2 text-sm leading-relaxed text-muted">
+                                    Information may be incomplete, delayed or incorrect. Accuracy,
+                                    completeness and timeliness are not guaranteed.
+                                </p>
+                                <a href="https://www.bvg.de/en" target="_blank" rel="noopener noreferrer"
+                                    class="mt-3 inline-flex items-center gap-2 rounded-sm text-xs hover:underline">
+                                    Check official BVG information
+                                    <AppIcon name="external" class="size-3.5 shrink-0" />
+                                </a>
+                                <p class="mt-5 text-xs leading-relaxed text-muted">
+                                    BVG logo © Berliner Verkehrsbetriebe (BVG). All rights reserved.
+                                </p>
+                                <p class="mt-3 text-xs leading-relaxed text-muted">
+                                    Your selected stops and preferences are saved locally in your browser.
+                                </p>
                             </div>
-                            <div class="flex justify-between gap-4 py-5 text-sm">
-                                <dt class="text-muted">Transit data</dt>
-                                <dd>
-                                    <a href="https://v6.bvg.transport.rest" target="_blank" rel="noopener noreferrer"
-                                        class="inline-flex items-center gap-2 hover:underline">
-                                        transport.rest
-                                        <AppIcon name="external" class="size-3.5" />
-                                    </a>
-                                </dd>
-                            </div>
-                            <div class="flex justify-between gap-4 py-5 text-sm">
-                                <dt class="text-muted">Built with</dt>
-                                <dd class="text-right">Vue 3 & Tailwind CSS</dd>
-                            </div>
-                            <div class="py-5 text-xs leading-relaxed text-muted">
-                                Realtime information is provided when available. Service times and
-                                connections can change. Your selected stops and preferences are
-                                saved locally in your browser.
-                            </div>
-                        </dl>
+                        </div>
                     </div>
                 </section>
             </Transition>
