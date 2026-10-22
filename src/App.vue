@@ -153,8 +153,8 @@ function switchView(view) {
                 <nav aria-label="Desktop navigation" class="hidden items-center gap-1 rounded-full bg-well p-1 md:flex">
                     <button v-for="item in navigation" :key="item.id" type="button"
                         class="flex h-10 items-center gap-2 rounded-full px-4 text-sm transition-colors" :class="state.currentView === item.id
-                                ? 'bg-panel text-ink'
-                                : 'text-muted hover:text-ink'
+                            ? 'bg-panel text-ink'
+                            : 'text-muted hover:text-ink'
                             " :aria-current="state.currentView === item.id ? 'page' : undefined"
                         @click="switchView(item.id)">
                         <AppIcon :name="item.icon" class="size-4" />
@@ -385,8 +385,8 @@ function switchView(view) {
                                     :aria-pressed="state.duration === minutes"
                                     class="h-10 min-w-0 flex-1 rounded-lg text-sm tabular-nums transition-colors"
                                     :class="state.duration === minutes
-                                            ? 'bg-ink text-panel'
-                                            : 'text-muted hover:text-ink'
+                                        ? 'bg-ink text-panel'
+                                        : 'text-muted hover:text-ink'
                                         " @click="setDuration(minutes)">
                                     {{ minutes }}m
                                 </button>
@@ -488,8 +488,8 @@ function switchView(view) {
                                                     Cancelled
                                                 </span>
                                                 <span v-else-if="Math.abs(delay(departure)) >= 60" :class="delay(departure) > 0
-                                                        ? 'text-red-700 dark:text-red-300'
-                                                        : ''
+                                                    ? 'text-red-700 dark:text-red-300'
+                                                    : ''
                                                     ">
                                                     {{ delay(departure) > 0 ? '+' : ''
                                                     }}{{ Math.round(delay(departure) / 60) }}
@@ -536,13 +536,11 @@ function switchView(view) {
                             <h3 class="text-lg font-medium">
                                 {{ state.stop ? 'A quiet moment.' : 'Every minute matters.' }}
                             </h3>
-                            <p class="mt-2 max-w-sm text-sm leading-relaxed text-muted">
-                                {{
-                                    state.stop
-                                        ? 'No departures in this window. Try a longer time window or refresh the board.'
-                                        : 'Search for a station or use your location to see upcoming departures and live
-                                delays.'
-                                }}
+                            <p v-if="state.stop" class="mt-2 max-w-sm text-sm leading-relaxed text-muted">
+                                No departures in this window. Try a longer time window or refresh the board.
+                            </p>
+                            <p v-else class="mt-2 max-w-sm text-sm leading-relaxed text-muted">
+                                Search for a station or use your location to see upcoming departures and live delays.
                             </p>
                         </div>
                         <div v-if="state.lastRefreshTime"
