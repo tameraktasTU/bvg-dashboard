@@ -1,81 +1,125 @@
-﻿# BVG Dashboard
+<p align="center">
+  <img src="public/bvg-logo.svg" width="56" height="56" alt="BVG logo" />
+</p>
 
-Live departures, journey planning and vehicle radar for Berlin & Brandenburg. Built with Vue 3, Vite and Tailwind CSS v4.
+<h1 align="center">BVG Dashboard</h1>
 
-[Live site](https://bvg.tameraktas.de) · [Transit API](https://v6.bvg.transport.rest/api.html)
+<p align="center">
+  Your next connection, clearly.<br />
+  Journey planning, live departures and vehicle radar for Berlin & Brandenburg.
+</p>
 
-## Development
+<p align="center">
+  <a href="https://bvg.tameraktas.de"><strong>Open the dashboard →</strong></a>
+  &nbsp; · &nbsp;
+  <a href="#on-your-phone">Mobile previews</a>
+  &nbsp; · &nbsp;
+  <a href="#run-locally">Run locally</a>
+</p>
 
-Use Node.js 22.18+ or a current Node.js 24 release.
+![Journey planning on desktop, with station search, a 24-hour time selector and available connections.](docs/screenshots/desktop-journeys.png)
+
+## One place for your next journey
+
+Plan a route, check the next departure or follow vehicles around your station. The dashboard brings the useful details together, on your phone or at your desk.
+
+| Plan your journey | Check your departures | Follow your connection |
+| --- | --- | --- |
+| Search stations, choose when to leave or arrive, and filter transport modes. | See times, platforms, delays and cancellations, with a quick choice of time windows. | Open the full stop list or switch to the vehicle radar around your selected station. |
+
+- **Useful route details.** Transfers, walking and waiting times, platforms and intermediate stops in an expandable itinerary.
+- **Faster station searches.** Station-only suggestions, nearby stops, keyboard navigation and fields that clear for editing and restore untouched selections.
+- **Made for daily use.** German date formatting, a 24-hour time picker, saved preferences, light and dark themes, and reduced-motion support.
+
+## On your phone
+
+Journey planner, live departures and the full stop list. Select an image to see it at full size.
+
+<p align="center">
+  <a href="docs/screenshots/mobile-journeys.png"><img src="docs/screenshots/mobile-journeys.png" width="32%" alt="Mobile journey planner with selected stations, date and departure time." /></a>
+  <a href="docs/screenshots/mobile-departures.png"><img src="docs/screenshots/mobile-departures.png" width="32%" alt="Mobile departures board in dark mode, showing live times, delays and cancellations." /></a>
+  <a href="docs/screenshots/mobile-line-overview.png"><img src="docs/screenshots/mobile-line-overview.png" width="32%" alt="Mobile line overview with the selected station highlighted in the stop timeline." /></a>
+</p>
+
+## At your desk
+
+A wider departure board, the next connection at a glance, and the same controls in dark mode.
+
+![Desktop departures board in dark mode, showing the selected station, time-window controls and upcoming services.](docs/screenshots/desktop-departures.png)
+
+All five screenshots are browser captures of the running application in dark mode with real API responses. The times shown are captured examples, not a live departure board.
+
+## Run locally
+
+You’ll need **Node.js 22.18+** and npm. No API key or backend is required.
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
-Open the local address printed by Vite. The application is now compiled with Vite; opening `index.html` directly is no longer supported.
+Open the local address printed by Vite. To build and preview the production version:
 
 ```sh
 npm run build
 npm run preview
 ```
 
-The production site is generated in `dist/`.
+The static build is written to `dist/`. Transit requests and map tiles need an internet connection; nearby-station lookup needs location permission and HTTPS or localhost.
 
-## Features
-
-- Journey planning between stations, with departure or arrival times and transport filters.
-- Station-only search suggestions with duplicate filtering and keyboard navigation.
-- Expandable connections with coloured route timelines, walking and waiting times for transfers, platforms, intermediate stops and realtime delay/cancellation information when available.
-- Live departures with 10, 20, 30, 45 and 60-minute windows. A single 60-minute response is filtered locally.
-- Full line overviews with stopovers and the selected station highlighted.
-- Nearby stops with distances when location access is permitted.
-- Lazy-loaded Leaflet radar showing vehicles that serve the selected stop, with next-stop information and recentering.
-- Mobile navigation dock, desktop navigation, light/dark themes and reduced-motion support.
-- Existing saved stations, journey endpoints, time window, theme and current view retained through the migration.
-
-Departures refresh every 30 seconds. Radar refreshes every 10 seconds while open. Refresh timers pause when the document is hidden; requests are cancelled when superseded or closed. Transit data and map tiles require a network connection. Location access requires HTTPS or localhost.
-
-## Checks
+### Checks
 
 ```sh
 npm test
 npm run test:browser
 ```
 
-Start the development server before the browser check. Browser QA defaults to `http://127.0.0.1:5173` and installed Microsoft Edge. Set `QA_BASE_URL` or `QA_BROWSER_CHANNEL` to use another preview or Playwright browser channel. The suite mocks transit responses for repeatable journey, departure, radar, persistence and failure checks, and captures screenshots in `.qa/`. Map tiles are requested from the real providers.
+Start the dev server before running the browser suite. It uses mocked transit responses for repeatable search, journey, departure, radar, persistence and error checks. Screenshots are saved in `.qa/`.
 
-The source uses four spaces, single quotes and semicolons for JavaScript, and two spaces for CSS.
+### Capture new README screenshots
 
-## Structure
+With the dev server running:
+
+```sh
+npm run screenshots:readme
+```
+
+The script opens the real app, requests live transit data and takes two desktop and three mobile screenshots in `docs/screenshots/`. It uses installed Microsoft Edge by default. Both browser commands accept `QA_BASE_URL` and `QA_BROWSER_CHANNEL` to select another local server or installed Playwright browser channel.
+
+## Built with
+
+**Vue 3 · Vite · Tailwind CSS v4 · Tabler Icons · Leaflet**
+
+Transit data comes from [transport.rest](https://v6.bvg.transport.rest/api.html). Departures refresh every 30 seconds; radar refreshes every 10 seconds while open. Refresh timers pause when the tab is hidden, and superseded requests are cancelled.
 
 ```text
 src/
-├── App.vue                     # Application shell and three views
-├── components/                 # Search, connection cards, line badges and dialogs
-├── composables/useTransit.js   # Reactive transit state, caching and request lifecycle
-├── lib/transit.js              # API helpers, route calculations and line identity
-├── lib/storage.js              # Safe, compatible browser persistence
-├── main.js                     # Vue entry point and bundled fonts
-└── styles.css                  # Tailwind tokens, base rules and interaction motion
+├── App.vue                    # Journey planner, departures and settings
+├── components/                # Search, route details, dialogs and shared UI
+├── composables/useTransit.js  # Transit state and request lifecycle
+├── lib/                       # Data validation, route helpers and local storage
+└── styles.css                 # Tailwind theme and interaction styles
+scripts/capture-readme.mjs     # Actual browser screenshot capture
+docs/screenshots/              # README images
 ```
 
-The UI uses canonical Tailwind utilities and shared theme tokens. Line colors use complete static classes so the production compiler includes every variant. Only Leaflet's generated markup needs scoped integration styles. The map and its styles are loaded on first use.
+<details>
+<summary><strong>Deployment</strong></summary>
 
-## Deployment
+The GitHub Actions workflow tests and builds the app, then deploys `dist/` after pushes to `main` or a manual run on `main`. Pull requests and manual runs on other branches run the build checks without deploying.
 
-The included GitHub Actions workflow runs the unit tests, builds the application and deploys `dist/` after pushes to `main` or a manual workflow run on `main`. Pull requests and manual runs on other branches run the checks without deploying. The workflow and production deployment must be verified in GitHub after pushing.
+In repository **Settings → Pages**, use **GitHub Actions** and keep `bvg.tameraktas.de` as the custom domain. This root-domain setup uses Vite’s default base path and does not need a repository `CNAME` file. A deployment to the default project URL at `https://tameraktasTU.github.io/BVG-Dashboard/` requires a Vite base of `/BVG-Dashboard/` before rebuilding.
 
-In repository **Settings → Pages**, select **GitHub Actions** as the source and keep `bvg.tameraktas.de` as the custom domain. GitHub Actions deployments read the domain from these settings; a repository `CNAME` file is ignored and is not needed. Vite's default base path (`'/'`) supports this custom domain without extra configuration. If you switch to the default project URL at `https://tameraktasTU.github.io/BVG-Dashboard/`, set Vite's base to `'/BVG-Dashboard/'` before rebuilding.
+For another static host, upload the complete contents of `dist/`. Verify the remote workflow and deployment in GitHub after pushing.
 
-For another static host, upload the complete contents of `dist/`.
+</details>
 
 ## Credits
 
 Created by [Tamer Aktas](https://tameraktas.de). Independent project, not an official BVG application.
 
-- Transit data: [transport.rest](https://v6.bvg.transport.rest).
-- UI: [Vue](https://vuejs.org), [Tailwind CSS](https://tailwindcss.com), and locally bundled [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans).
-- Icons: [Tabler Icons](https://tabler.io/icons), licensed under MIT.
-- Maps: [Leaflet](https://leafletjs.com), [OpenStreetMap](https://www.openstreetmap.org/copyright) and Esri Dark Gray Canvas. Attribution remains on the map.
-- BVG brand mark: [theSVG catalog](https://thesvg.org/icon/bvg). The logo identifies the transit network; all brand rights remain with their owner.
+- **Transit data:** [transport.rest](https://v6.bvg.transport.rest).
+- **Typeface:** locally bundled [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans).
+- **Icons:** [Tabler Icons](https://tabler.io/icons), MIT licensed.
+- **Maps:** [Leaflet](https://leafletjs.com), [OpenStreetMap](https://www.openstreetmap.org/copyright) and Esri Dark Gray Canvas. Attribution remains on the map.
+- **BVG brand mark:** [theSVG catalog](https://thesvg.org/icon/bvg). The logo identifies the transit network; all brand rights remain with their owner.
