@@ -10,15 +10,16 @@
     <title>BVG Dashboard · Berlin, on your terms.</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script>
+        let theme;
         try {
-            const theme = localStorage.getItem('theme');
-            document.documentElement.classList.toggle(
-                'dark',
-                theme === 'dark' ||
-                (!['light', 'dark'].includes(theme) &&
-                    matchMedia('(prefers-color-scheme: dark)').matches)
-            );
+            theme = localStorage.getItem('theme');
         } catch { }
+        document.documentElement.classList.toggle(
+            'dark',
+            theme === 'dark' ||
+            (!['light', 'dark'].includes(theme) &&
+                !window.matchMedia?.('(prefers-color-scheme: light)')?.matches)
+        );
     </script>
 </head>
 

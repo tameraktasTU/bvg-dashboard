@@ -34,7 +34,7 @@ const savedTheme = readStorage('theme');
 const dark = ref(
     savedTheme === 'dark' ||
     (!['light', 'dark'].includes(savedTheme) &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches)
+        !window.matchMedia?.('(prefers-color-scheme: light)')?.matches)
 );
 const radarOpen = ref(false);
 const radarLoaded = ref(false);
