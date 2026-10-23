@@ -41,6 +41,12 @@ Journey planner, live departures and the full stop list. Select an image to see 
   <a href="docs/screenshots/mobile-line-overview.png"><img src="docs/screenshots/mobile-line-overview.png" width="32%" alt="Mobile line overview with the selected station highlighted in the stop timeline." /></a>
 </p>
 
+### Add it to your Home Screen
+
+Open **Settings → Install app** in the dashboard. Supported browsers offer an installation button; other browsers show the relevant steps. On iPhone or iPad, open the dashboard in Safari, tap **Share → Add to Home Screen**, keep **Open as Web App** enabled if shown, and tap **Add**.
+
+The installed app has its own icon and opens in a separate app window. Transit data and maps still need an internet connection; offline support is not included.
+
 ## At your desk
 
 A wider departure board, the next connection at a glance, and the same controls in dark mode.
@@ -85,6 +91,8 @@ npm run screenshots:readme
 ```
 
 The script opens the real app, requests live transit data and takes two desktop and three mobile screenshots in `docs/screenshots/`. It uses installed Microsoft Edge by default. Both browser commands accept `QA_BASE_URL` and `QA_BROWSER_CHANNEL` to select another local server or installed Playwright browser channel.
+
+To regenerate the app icons from the existing Tabler train favicon, run `node scripts/generate-app-icons.mjs`. This also uses installed Microsoft Edge by default and accepts `QA_BROWSER_CHANNEL`.
 
 ## Built with
 

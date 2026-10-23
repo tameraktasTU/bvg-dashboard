@@ -1,6 +1,7 @@
 ﻿<script setup>
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useTransit } from './composables/useTransit.js';
+import { useAppInstall } from './composables/useAppInstall.js';
 import { PRODUCTS, computeDelaySecs, formatTime, timestamp } from './lib/transit.js';
 import { readStorage, writeStorage } from './lib/storage.js';
 import AppIcon from './components/AppIcon.vue';
@@ -10,8 +11,17 @@ import JourneyCard from './components/JourneyCard.vue';
 import TripDialog from './components/TripDialog.vue';
 import JourneyDateInput from './components/JourneyDateInput.vue';
 import JourneyTimeInput from './components/JourneyTimeInput.vue';
+import AppInstallSettings from './components/AppInstallSettings.vue';
 
 const RadarDialog = defineAsyncComponent(() => import('./components/RadarDialog.vue'));
+const {
+    installed,
+    canInstall,
+    installing,
+    error: installError,
+    installPlatform,
+    install: installApp
+} = useAppInstall();
 const {
     state,
     filteredDepartures,
@@ -554,6 +564,8 @@ function switchView(view) {
                 </section>
 
                 <section v-else key="settings" aria-label="Settings" class="space-y-8">
+                    <AppInstallSettings :installed="installed" :can-install="canInstall" :installing="installing"
+                        :error="installError" :platform="installPlatform" @install="installApp" />
                     <div class="grid gap-5 border-b border-edge pb-8 md:grid-cols-12">
                         <div class="md:col-span-5">
                             <h2 class="text-base font-semibold">Appearance</h2>

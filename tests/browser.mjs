@@ -798,7 +798,118 @@ async function checkDepartureBadges() {
     await context.close();
 }
 
+async function checkAppInstallation() {
+    console.log('App manifest, manual installation, deferred prompt and installed states');
+    const errors = [];
+    const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
+    const open = async (mode = 'desktop') => {
+        const context = await browser.newContext({
+            viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', colorScheme: 'light',
+            ...(mode.startsWith('ios') ? { userAgent: iphone, hasTouch: true } : {})
+        });
+        const page = await context.newPage();
+        activePage = page;
+        page.on('pageerror', (error) => errors.push(error.message));
+        await mockApi(page);
+        await page.addInitScript((mode) => {
+            localStorage.setItem('theme', 'light');
+            // Keep tests deterministic and never invoke a real browser installer.
+            window.addEventListener('beforeinstallprompt', (event) => {
+                if (event.isTrusted) { event.preventDefault(); event.stopImmediatePropagation(); }
+            }, true);
+            if (mode === 'ios-installed') Object.defineProperty(navigator, 'standalone', { value: true });
+            if (mode === 'standalone') {
+                const matchMedia = window.matchMedia.bind(window);
+                window.matchMedia = (query) => {
+                    const result = matchMedia(query);
+                    if (query === '(display-mode: standalone)') Object.defineProperty(result, 'matches', { value: true });
+                    return result;
+                };
+            }
+        }, mode);
+        await page.goto(baseUrl);
+        await expect(page.getByRole('heading', { name: 'Plan a journey', exact: true })).toBeVisible();
+        return { context, page };
+    };
+    const { context, page } = await open();
+    const manifestUrl = await page.locator('link[rel="manifest"]').evaluate((link) => link.href);
+    const response = await page.request.get(manifestUrl);
+    assert.ok(response.ok(), 'The manifest must be served successfully.');
+    const manifest = await response.json();
+    assert.equal(manifest.name, 'BVG Dashboard');
+    assert.equal(manifest.id, './');
+    assert.equal(manifest.start_url, './');
+    assert.equal(manifest.scope, './');
+    assert.equal(manifest.display, 'standalone');
+    assert.equal(manifest.orientation, undefined, 'Installation must allow portrait and landscape.');
+    assert.deepEqual(manifest.icons.map(({ sizes, purpose }) => [sizes, purpose]), [
+        ['192x192', 'any'], ['512x512', 'any'], ['512x512', 'maskable']
+    ]);
+    const appleUrl = await page.locator('link[rel="apple-touch-icon"]').evaluate((link) => link.href);
+    for (const icon of [...manifest.icons, { src: appleUrl, sizes: '180x180' }]) {
+        const asset = await page.request.get(new URL(icon.src, manifestUrl).href);
+        assert.ok(asset.ok(), `App icon must be served: ${icon.src}`);
+        assert.match(asset.headers()['content-type'], /image\/png/);
+        const png = await asset.body();
+        assert.equal(`${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`, icon.sizes);
+    }
+    await navigate(page, 'Settings');
+    const manual = page.getByRole('button', { name: 'Installation instructions', exact: true });
+    await manual.click();
+    await expect(page.getByRole('heading', { name: 'From your browser', exact: true })).toBeVisible();
+    await expect(page.getByText('Live departures, journey planning and maps need an internet connection.')).toBeVisible();
+    for (const theme of ['light', 'dark']) {
+        if (theme === 'dark') await page.getByRole('switch', { name: /dark mode/i }).locator('..').click();
+        assert.equal(await page.locator('html').evaluate((html) => html.classList.contains('dark')), theme === 'dark');
+        for (const width of [320, 390, 768, 1440]) {
+            await page.setViewportSize({ width, height: 900 });
+            await assertNoOverflow(page, `${width}px ${theme} installation instructions`);
+        }
+    }
+    await context.close();
+
+    const deferred = await open();
+    await deferred.page.evaluate(() => {
+        window.installPromptCalls = 0;
+        const event = new Event('beforeinstallprompt', { cancelable: true });
+        event.prompt = async () => { window.installPromptCalls++; return { outcome: 'dismissed' }; };
+        window.installPromptPrevented = !window.dispatchEvent(event);
+    });
+    assert.equal(await deferred.page.evaluate(() => window.installPromptPrevented), true);
+    await navigate(deferred.page, 'Settings');
+    await deferred.page.getByRole('button', { name: 'Install app', exact: true }).click();
+    const fallback = deferred.page.getByRole('button', { name: 'Installation instructions', exact: true });
+    await expect(fallback).toBeVisible();
+    await fallback.click();
+    await expect(deferred.page.getByRole('heading', { name: 'From your browser', exact: true })).toBeVisible();
+    assert.equal(await deferred.page.evaluate(() => window.installPromptCalls), 1);
+    await deferred.page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
+    await expect(deferred.page.getByRole('status').filter({ hasText: 'App installed.' })).toBeVisible();
+    await expect(fallback).toHaveCount(0);
+    await expect(deferred.page.getByRole('button', { name: 'Install app', exact: true })).toHaveCount(0);
+    await deferred.context.close();
+
+    for (const mode of ['ios', 'ios-installed', 'standalone']) {
+        const current = await open(mode);
+        await navigate(current.page, 'Settings');
+        const add = current.page.getByRole('button', { name: 'Add to Home Screen', exact: true });
+        if (mode === 'ios') {
+            await add.click();
+            await expect(current.page.getByRole('heading', { name: 'On iPhone or iPad', exact: true })).toBeVisible();
+            await expect(current.page.getByText('Open this website in Safari.', { exact: true })).toBeVisible();
+            await expect(current.page.locator('#app-install-instructions')).toContainText('Share menu');
+        } else {
+            await expect(current.page.getByRole('status').filter({ hasText: 'App installed.' })).toBeVisible();
+            await expect(add).toHaveCount(0);
+            await expect(current.page.getByRole('button', { name: /^(Install app|Installation instructions)$/ })).toHaveCount(0);
+        }
+        await current.context.close();
+    }
+    assert.deepEqual(errors, [], 'Installation settings must not produce runtime errors.');
+}
+
 try {
+    await checkAppInstallation();
     await checkDepartureBadges();
     await checkLocationSearch();
     const context = await browser.newContext({
