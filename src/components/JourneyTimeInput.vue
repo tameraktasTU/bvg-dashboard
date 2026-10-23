@@ -113,7 +113,7 @@ onBeforeUnmount(() => {
                 pattern="([01][0-9]|2[0-3]):[0-5][0-9]" placeholder="HH:MM" title="24-hour time (HH:MM)" maxlength="5"
                 autocomplete="off" required aria-haspopup="dialog" :aria-expanded="open"
                 :aria-controls="open ? pickerId : undefined"
-                class="h-full min-w-0 w-full rounded-xl bg-transparent pl-3 pr-9 text-sm tabular-nums"
+                class="h-full min-w-0 w-full rounded-xl bg-transparent pl-3 pr-9 text-sm tabular-nums pointer-coarse:text-base"
                 @input="emit('update:modelValue', $event.target.value)" @click="showPicker()" />
             <button type="button" aria-label="Choose journey time" title="Choose journey time" aria-haspopup="dialog"
                 :aria-expanded="open" :aria-controls="open ? pickerId : undefined"

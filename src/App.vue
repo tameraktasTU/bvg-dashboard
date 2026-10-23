@@ -218,7 +218,7 @@ function switchView(view) {
                             <div class="mt-6 flex items-center justify-between gap-3">
                                 <label for="journey-mode" class="sr-only">Journey time mode</label>
                                 <select id="journey-mode" v-model="state.journey.timeMode"
-                                    class="min-w-0 bg-transparent py-2 text-sm font-medium">
+                                    class="min-w-0 bg-transparent py-2 text-sm font-medium pointer-coarse:text-base">
                                     <option value="departure">Depart at</option>
                                     <option value="arrival">Arrive by</option>
                                 </select>

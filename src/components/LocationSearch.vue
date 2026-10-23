@@ -101,7 +101,7 @@ function findNearby() {
                 :aria-controls="expanded ? `${id}-results` : undefined"
                 :aria-activedescendant="expanded && active >= 0 ? `${id}-option-${active}` : undefined" aria-autocomplete="list"
                 :placeholder="placeholder" :value="editing ? draft : search.query"
-                class="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-ink outline-none placeholder:text-muted focus-visible:outline-none"
+                class="min-w-0 flex-1 bg-transparent py-3.5 text-sm text-ink outline-none placeholder:text-muted focus-visible:outline-none pointer-coarse:text-base"
                 @input="onInput" @keydown="onKeydown" @focus="onFocus" @click="onFocus" />
             <button v-if="nearby" type="button"
                 class="-mr-2 grid size-10 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-well hover:text-ink"

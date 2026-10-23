@@ -48,7 +48,7 @@ function selectDate(event) {
         <input :id="id" ref="textInput" :value="draft" type="text" inputmode="text"
             pattern="[0-9]{2}\.[0-9]{2}\.[0-9]{4}" placeholder="TT.MM.JJJJ" title="Date (DD.MM.YYYY)" maxlength="10"
             autocomplete="off" required
-            class="h-full min-w-0 w-full rounded-xl bg-transparent pl-3 pr-10 text-sm tabular-nums" @input="onInput" />
+            class="h-full min-w-0 w-full rounded-xl bg-transparent pl-3 pr-10 text-sm tabular-nums pointer-coarse:text-base" @input="onInput" />
         <input ref="picker" :value="validDate(draft) ? modelValue : ''" type="date" tabindex="-1" aria-hidden="true"
             class="pointer-events-none absolute bottom-0 left-0 size-0 opacity-0" @change="selectDate" />
         <button type="button" aria-label="Choose journey date" title="Choose journey date"
